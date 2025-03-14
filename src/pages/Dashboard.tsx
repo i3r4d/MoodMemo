@@ -1,14 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import MoodDashboard from '@/components/MoodDashboard';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { Button } from '@/components/ui/button';
-import { LockIcon, ShieldIcon, AlertTriangleIcon } from 'lucide-react';
+import { LockIcon, ShieldIcon, AlertTriangleIcon, InfoIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const [isPremium] = useState(false); // This would come from a user context/state in a real app
+  
+  // Mock entry count for demonstration
+  const entryCount = 10;
+  const maxFreeEntries = 14;
+  const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
   
   // Mock data for demonstration
   const moodDistribution = {
@@ -35,7 +42,7 @@ const Dashboard = () => {
   const handlePremiumClick = () => {
     toast({
       title: "Premium Feature",
-      description: "Upgrade to Premium for $9.99/month to access advanced insights and ad-free experience.",
+      description: "Upgrade to Premium for $4.99/month to access advanced insights and ad-free experience.",
     });
   };
   
@@ -44,6 +51,13 @@ const Dashboard = () => {
       title: "Crisis Resources",
       description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988.",
       variant: "destructive",
+    });
+  };
+  
+  const handleWhyAdsClick = () => {
+    toast({
+      title: "Why Ads?",
+      description: "Ads keep the app free for everyone. Upgrade to premium for an ad-free experience.",
     });
   };
 
@@ -64,6 +78,29 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
+        
+        {!isPremium && (
+          <div className="glass-morphism mood-journal-card p-4 mb-4 bg-blue-50/30 border-blue-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="flex-grow">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-medium text-primary">Journal Entry Limit</h3>
+                  <span className="text-sm font-medium">{entryCount}/{maxFreeEntries} Entries</span>
+                </div>
+                <Progress value={entryProgress} className="h-2 mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  You've used {entryCount} of your 14 free entries. Upgrade for unlimited journaling.
+                </p>
+              </div>
+              <Button 
+                onClick={handlePremiumClick}
+                className="shrink-0 bg-gradient-to-r from-primary to-primary/80"
+              >
+                Upgrade Now
+              </Button>
+            </div>
+          </div>
+        )}
         
         <div className="glass-morphism mood-journal-card p-4 mb-4 bg-amber-50/30 border-amber-200 rounded-lg">
           <div className="flex items-start gap-3">
@@ -88,11 +125,41 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <MoodDashboard 
-          moodDistribution={moodDistribution}
-          weeklyMoodData={weeklyMoodData}
-          entriesCount={entriesCount}
-        />
+        {isPremium ? (
+          <MoodDashboard 
+            moodDistribution={moodDistribution}
+            weeklyMoodData={weeklyMoodData}
+            entriesCount={entriesCount}
+          />
+        ) : (
+          <div className="glass-morphism mood-journal-card p-5 space-y-4 relative">
+            <div className="absolute inset-0 backdrop-blur-sm bg-white/30 rounded-lg z-10 flex flex-col items-center justify-center p-6">
+              <LockIcon className="h-8 w-8 text-primary mb-3" />
+              <h3 className="text-lg font-medium text-center mb-1">Unlock Premium Insights</h3>
+              <p className="text-center text-muted-foreground mb-4">
+                Upgrade to see AI trends, weekly summaries, and actionable recommendations.
+              </p>
+              <Button
+                onClick={handlePremiumClick}
+                className="bg-gradient-to-r from-primary to-primary/80"
+              >
+                Upgrade for $4.99/month
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Less than a latte per month for better mental wellness
+              </p>
+            </div>
+            
+            {/* Blurred preview of the dashboard */}
+            <div className="opacity-40 pointer-events-none">
+              <MoodDashboard 
+                moodDistribution={moodDistribution}
+                weeklyMoodData={weeklyMoodData}
+                entriesCount={entriesCount}
+              />
+            </div>
+          </div>
+        )}
         
         <div className="glass-morphism mood-journal-card border-primary/20 p-4 mt-6">
           <div className="flex items-center justify-between">
@@ -106,15 +173,28 @@ const Dashboard = () => {
               onClick={handlePremiumClick}
               className="bg-gradient-to-r from-primary to-primary/80"
             >
-              Upgrade for $9.99/mo
+              Upgrade for $4.99/mo
             </Button>
           </div>
         </div>
         
-        {/* Free version ad placeholder */}
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center text-sm text-gray-500 mt-6">
-          <p>Free version supported by ethical ads. Go premium to remove.</p>
-        </div>
+        {/* Free version ad placeholder with Why Ads tooltip */}
+        {!isPremium && (
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 mt-6">
+            <div className="flex items-center justify-between">
+              <p>Free version supported by ethical ads. Go premium to remove.</p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleWhyAdsClick} 
+                className="text-xs h-7 px-2"
+              >
+                <InfoIcon className="h-3 w-3 mr-1" />
+                Why Ads?
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </AnimatedTransition>
   );
