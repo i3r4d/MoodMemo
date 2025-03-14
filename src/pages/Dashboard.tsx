@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import MoodDashboard from '@/components/MoodDashboard';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { LockIcon, ShieldIcon, AlertTriangleIcon, InfoIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import ReportGenerator from '@/components/ReportGenerator';
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -125,6 +125,11 @@ const Dashboard = () => {
           </div>
         </div>
         
+        <ReportGenerator 
+          isPremium={isPremium} 
+          insightsView={true}
+        />
+        
         {isPremium ? (
           <MoodDashboard 
             moodDistribution={moodDistribution}
@@ -150,7 +155,6 @@ const Dashboard = () => {
               </p>
             </div>
             
-            {/* Blurred preview of the dashboard */}
             <div className="opacity-40 pointer-events-none">
               <MoodDashboard 
                 moodDistribution={moodDistribution}
@@ -178,7 +182,6 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Free version ad placeholder with Why Ads tooltip */}
         {!isPremium && (
           <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500 mt-6">
             <div className="flex items-center justify-between">

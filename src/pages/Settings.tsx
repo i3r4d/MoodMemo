@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -9,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangleIcon, FingerprintIcon, ShieldIcon, LockIcon, CreditCardIcon, EyeIcon, KeyIcon } from 'lucide-react';
+import ReportGenerator from '@/components/ReportGenerator';
 
 const Settings = () => {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -176,6 +176,10 @@ const Settings = () => {
                   checked={encryptData} 
                   onCheckedChange={setEncryptData} 
                 />
+              </div>
+              
+              <div className="pt-4 border-t">
+                <ReportGenerator isPremium={false} />
               </div>
               
               <div className="pt-4 border-t">
