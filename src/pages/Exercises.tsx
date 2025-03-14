@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import ExerciseCard, { Exercise } from '@/components/ExerciseCard';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { AlertTriangleIcon, LockIcon } from 'lucide-react';
 
 const Exercises = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -57,6 +59,38 @@ const Exercises = () => {
       duration: 8,
       category: 'breathing',
       isPremium: true
+    },
+    {
+      id: '7',
+      title: 'Loving-Kindness Meditation',
+      description: 'Cultivate feelings of goodwill, kindness, and warmth towards others.',
+      duration: 12,
+      category: 'meditation',
+      isPremium: true
+    },
+    {
+      id: '8',
+      title: 'Morning Energizer',
+      description: 'Start your day with positive energy and mindfulness.',
+      duration: 7,
+      category: 'meditation',
+      isPremium: true
+    },
+    {
+      id: '9',
+      title: 'Stress Relief Visualization',
+      description: 'Guided visualization to help you reduce stress and find calm.',
+      duration: 15,
+      category: 'relaxation',
+      isPremium: true
+    },
+    {
+      id: '10',
+      title: '4-7-8 Breathing Technique',
+      description: 'A breathing pattern that promotes relaxation and better sleep.',
+      duration: 5,
+      category: 'breathing',
+      isPremium: false
     }
   ];
   
@@ -86,11 +120,63 @@ const Exercises = () => {
       });
     }
   };
+  
+  const handlePremiumClick = () => {
+    toast({
+      title: "Premium Subscription",
+      description: "Upgrade to premium for $9.99/month to access all exercises and remove ads.",
+    });
+  };
+  
+  const handleCrisisResourcesClick = () => {
+    toast({
+      title: "Crisis Resources",
+      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988.",
+      variant: "destructive",
+    });
+  };
+  
+  const freeExercisesCount = exercises.filter(ex => !ex.isPremium).length;
+  const premiumExercisesCount = exercises.filter(ex => ex.isPremium).length;
 
   return (
     <AnimatedTransition keyValue="exercises">
       <div className="max-w-5xl mx-auto py-4">
-        <h1 className="text-2xl font-bold mb-6">Guided Exercises</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Guided Exercises</h1>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleCrisisResourcesClick}
+            className="text-red-500 border-red-200 hover:bg-red-50"
+          >
+            <AlertTriangleIcon className="h-4 w-4 mr-1" />
+            Crisis Resources
+          </Button>
+        </div>
+        
+        <div className="glass-morphism mood-journal-card p-4 mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-medium flex items-center gap-2">
+                <span>Exercise Library</span>
+                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">
+                  {freeExercisesCount} Free
+                </span>
+                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1">
+                  <LockIcon className="h-3 w-3" />
+                  {premiumExercisesCount} Premium
+                </span>
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Guided meditations and exercises to improve mental wellbeing
+              </p>
+            </div>
+            <Button onClick={handlePremiumClick} className="bg-gradient-to-r from-primary to-primary/80">
+              Unlock All Exercises
+            </Button>
+          </div>
+        </div>
         
         {/* Category filters */}
         <div className="flex flex-wrap gap-2 mb-6">
@@ -124,6 +210,11 @@ const Exercises = () => {
             No exercises found in this category.
           </div>
         )}
+        
+        {/* Free version ad placeholder */}
+        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center text-sm text-gray-500 mt-10">
+          <p>Free version supported by ethical ads. <span className="text-primary font-medium">Go premium to remove.</span></p>
+        </div>
       </div>
     </AnimatedTransition>
   );

@@ -1,48 +1,75 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { AlertTriangleIcon, BookOpenIcon, BarChart2Icon, WindIcon, ShieldIcon, LockIcon } from 'lucide-react';
+import AuthScreen from '@/components/AuthScreen';
 
 const Index = () => {
+  const { toast } = useToast();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem('hasVisitedBefore');
+    if (!hasVisitedBefore) {
+      setShowOnboarding(true);
+    }
+  }, []);
+  
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hasVisitedBefore', 'true');
+    setShowOnboarding(false);
+    toast({
+      title: "Welcome to MoodMemo!",
+      description: "Your mental health journal is set up and ready to use.",
+    });
+  };
+  
+  const handleCrisisResourcesClick = () => {
+    toast({
+      title: "Crisis Resources",
+      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988.",
+      variant: "destructive",
+    });
+  };
+  
+  const handlePremiumClick = () => {
+    toast({
+      title: "Premium Feature",
+      description: "Upgrade to Premium for $9.99/month to access ad-free experience and all exercises.",
+    });
+  };
+  
+  if (showOnboarding) {
+    return <AuthScreen onComplete={handleOnboardingComplete} />;
+  }
+
   const features = [
     {
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-          <line x1="12" y1="19" x2="12" y2="22"></line>
-        </svg>
-      ),
+      icon: <BookOpenIcon className="h-6 w-6" />,
       title: 'Voice Journaling',
       description: 'Record your thoughts effortlessly with voice-to-text technology.',
-      link: '/journal'
+      link: '/journal',
+      premium: false
     },
     {
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-          <line x1="18" y1="20" x2="18" y2="10"></line>
-          <line x1="12" y1="20" x2="12" y2="4"></line>
-          <line x1="6" y1="20" x2="6" y2="14"></line>
-        </svg>
-      ),
+      icon: <BarChart2Icon className="h-6 w-6" />,
       title: 'Mood Tracking',
       description: 'Visualize your emotional patterns with AI-powered insights.',
-      link: '/dashboard'
+      link: '/dashboard',
+      premium: false
     },
     {
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-          <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>
-        </svg>
-      ),
+      icon: <WindIcon className="h-6 w-6" />,
       title: 'Guided Exercises',
       description: 'Access meditation and breathing exercises for mental wellbeing.',
-      link: '/exercises'
+      link: '/exercises',
+      premium: true
     }
   ];
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -83,6 +110,18 @@ const Index = () => {
         animate="visible"
         className="max-w-3xl mx-auto text-center px-4 space-y-8"
       >
+        <div className="absolute top-4 right-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleCrisisResourcesClick}
+            className="text-red-500 border-red-200 hover:bg-red-50"
+          >
+            <AlertTriangleIcon className="h-4 w-4 mr-1" />
+            Crisis Resources
+          </Button>
+        </div>
+        
         <motion.div variants={itemVariants} className="space-y-2">
           <motion.div 
             className="flex justify-center mb-4"
@@ -180,18 +219,27 @@ const Index = () => {
             <Link key={feature.title} to={feature.link}>
               <motion.div
                 className={cn(
-                  "glass-morphism mood-journal-card text-left h-full",
+                  "glass-morphism mood-journal-card text-left h-full relative",
                   "transition-all duration-300 hover:shadow-xl"
                 )}
                 whileHover={{ y: -5 }}
                 transition={{ duration: 0.2 }}
               >
+                {feature.premium && (
+                  <div className="absolute top-2 right-2 bg-amber-200 text-amber-800 font-medium px-2 py-0.5 rounded-full text-xs">
+                    PREMIUM
+                  </div>
+                )}
+                
                 <div className="flex flex-col h-full">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
                     {feature.icon}
                   </div>
                   
-                  <h3 className="text-lg font-medium mb-2">{feature.title}</h3>
+                  <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                    {feature.title}
+                    {feature.premium && <LockIcon className="h-3 w-3 text-amber-600" />}
+                  </h3>
                   <p className="text-muted-foreground text-sm flex-grow">{feature.description}</p>
                   
                   <div className="flex items-center gap-1 text-primary mt-4 text-sm font-medium">
@@ -209,15 +257,45 @@ const Index = () => {
         
         <motion.div 
           variants={itemVariants}
+          className="glass-morphism mood-journal-card text-left p-5 max-w-lg mx-auto mt-4"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Unlock Premium Features</h3>
+              <p className="text-sm text-muted-foreground">
+                Ad-free experience, unlimited exercises, and AI-powered insights
+              </p>
+            </div>
+            <Button 
+              onClick={handlePremiumClick}
+              className="bg-gradient-to-r from-primary to-primary/80"
+            >
+              $9.99/month
+            </Button>
+          </div>
+        </motion.div>
+        
+        <motion.div 
+          variants={itemVariants}
           className="mt-8 text-center"
         >
           <div className="glass-morphism px-6 py-4 rounded-lg inline-block">
             <div className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-destructive">
-                <rect width="16" height="16" x="4" y="4" rx="1"></rect>
-                <path d="M12 8v4"></path>
-                <path d="M12 16h.01"></path>
-              </svg>
+              <ShieldIcon className="h-5 w-5 text-primary" />
+              <span className="text-sm text-muted-foreground">
+                Your data is stored locally and never shared unless you export it.
+              </span>
+            </div>
+          </div>
+        </motion.div>
+        
+        <motion.div 
+          variants={itemVariants}
+          className="mt-4 text-center"
+        >
+          <div className="glass-morphism px-6 py-4 rounded-lg inline-block">
+            <div className="flex items-center gap-2">
+              <AlertTriangleIcon className="h-5 w-5 text-destructive" />
               <span className="text-sm text-muted-foreground">
                 If you're in crisis, please call the National Suicide Prevention Lifeline at <strong>988</strong>
               </span>
@@ -225,6 +303,10 @@ const Index = () => {
           </div>
         </motion.div>
       </motion.div>
+      
+      <div className="fixed bottom-20 left-0 right-0 p-3 bg-gray-50 border-t border-gray-200 text-center text-sm text-gray-500">
+        <p>Free version supported by ethical ads. <span className="text-primary font-medium">Go premium to remove.</span></p>
+      </div>
     </div>
   );
 };
