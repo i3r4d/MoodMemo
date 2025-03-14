@@ -235,7 +235,7 @@ const Settings = () => {
                 onClick={handleSubscribe}
                 className="w-full bg-gradient-to-r from-primary to-primary/80"
               >
-                Upgrade to Premium - $9.99/month
+                Upgrade to Premium - $4.99/month
               </Button>
               <p className="text-xs text-center text-muted-foreground">
                 Cancel anytime • 7-day free trial

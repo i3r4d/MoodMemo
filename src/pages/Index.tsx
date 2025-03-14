@@ -38,7 +38,7 @@ const Index = () => {
   const handlePremiumClick = () => {
     toast({
       title: "Premium Feature",
-      description: "Upgrade to Premium for $9.99/month to access ad-free experience and all exercises.",
+      description: "Upgrade to Premium for $4.99/month to access ad-free experience and all exercises.",
     });
   };
   
@@ -270,7 +270,7 @@ const Index = () => {
               onClick={handlePremiumClick}
               className="bg-gradient-to-r from-primary to-primary/80"
             >
-              $9.99/month
+              $4.99/month
             </Button>
           </div>
         </motion.div>
