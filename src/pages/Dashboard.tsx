@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import MoodDashboard from '@/components/MoodDashboard';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -7,43 +8,121 @@ import { LockIcon, ShieldIcon, AlertTriangleIcon, InfoIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import ReportGenerator from '@/components/ReportGenerator';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+interface MoodDistribution {
+  joy: number;
+  calm: number;
+  neutral: number;
+  sad: number;
+  stress: number;
+  unknown: number;
+}
+
+interface WeeklyMoodData {
+  day: string;
+  joy: number;
+  calm: number;
+  neutral: number;
+  sad: number;
+  stress: number;
+}
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const [isPremium] = useState(false); // This would come from a user context/state in a real app
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const [entryCount, setEntryCount] = useState(0);
+  const [moodDistribution, setMoodDistribution] = useState<MoodDistribution>({
+    joy: 0,
+    calm: 0,
+    neutral: 0,
+    sad: 0,
+    stress: 0,
+    unknown: 0
+  });
+  const [weeklyMoodData, setWeeklyMoodData] = useState<WeeklyMoodData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Mock entry count for demonstration
-  const entryCount = 10;
+  const isPremium = profile?.is_premium || false;
   const maxFreeEntries = 14;
   const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
   
-  // Mock data for demonstration
-  const moodDistribution = {
-    joy: 5,
-    calm: 8,
-    neutral: 12,
-    sad: 3,
-    stress: 6,
-    unknown: 1
-  };
-
-  const weeklyMoodData = [
-    { day: 'Mon', joy: 2, calm: 1, neutral: 1, sad: 0, stress: 0 },
-    { day: 'Tue', joy: 1, calm: 2, neutral: 1, sad: 0, stress: 0 },
-    { day: 'Wed', joy: 0, calm: 1, neutral: 2, sad: 1, stress: 1 },
-    { day: 'Thu', joy: 0, calm: 0, neutral: 1, sad: 1, stress: 2 },
-    { day: 'Fri', joy: 1, calm: 1, neutral: 2, sad: 0, stress: 1 },
-    { day: 'Sat', joy: 1, calm: 2, neutral: 3, sad: 0, stress: 0 },
-    { day: 'Sun', joy: 0, calm: 1, neutral: 2, sad: 1, stress: 2 }
-  ];
-
-  const entriesCount = 35;
+  useEffect(() => {
+    const fetchDataForDashboard = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        
+        // Fetch count of entries
+        const { count, error: countError } = await supabase
+          .from('journal_entries')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        
+        if (countError) {
+          console.error('Error fetching entry count:', countError);
+        } else if (count !== null) {
+          setEntryCount(count);
+        }
+        
+        // Fetch entries for mood distribution
+        const { data: moodData, error: moodError } = await supabase
+          .from('journal_entries')
+          .select('mood')
+          .eq('user_id', user.id);
+        
+        if (moodError) {
+          console.error('Error fetching mood data:', moodError);
+        } else if (moodData) {
+          const distribution: MoodDistribution = {
+            joy: 0,
+            calm: 0,
+            neutral: 0,
+            sad: 0,
+            stress: 0,
+            unknown: 0
+          };
+          
+          moodData.forEach(entry => {
+            if (entry.mood) {
+              distribution[entry.mood as keyof MoodDistribution]++;
+            } else {
+              distribution.unknown++;
+            }
+          });
+          
+          setMoodDistribution(distribution);
+        }
+        
+        // Fetch weekly data (simplified example - in a real app you'd aggregate by day)
+        // This is a simplified example - we're creating mock weekly data based on actual mood counts
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const mockWeeklyData: WeeklyMoodData[] = days.map(day => ({
+          day,
+          joy: Math.floor(Math.random() * (moodDistribution.joy || 1)),
+          calm: Math.floor(Math.random() * (moodDistribution.calm || 1)),
+          neutral: Math.floor(Math.random() * (moodDistribution.neutral || 1)),
+          sad: Math.floor(Math.random() * (moodDistribution.sad || 1)),
+          stress: Math.floor(Math.random() * (moodDistribution.stress || 1))
+        }));
+        
+        setWeeklyMoodData(mockWeeklyData);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchDataForDashboard();
+  }, [user]);
   
   const handlePremiumClick = () => {
-    toast({
-      title: "Premium Feature",
-      description: "Upgrade to Premium for $4.99/month to access advanced insights and ad-free experience.",
-    });
+    navigate('/settings');
   };
   
   const handleCrisisResourcesClick = () => {
@@ -110,14 +189,14 @@ const Dashboard = () => {
             <div>
               <h3 className="font-medium text-amber-800">Your data is secure</h3>
               <p className="text-sm text-amber-700">
-                Insights are stored locally on your device. Enable additional security in Settings.
+                Insights are stored securely in your account. Enable additional security in Settings.
               </p>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
               className="ml-auto text-amber-600 hover:bg-amber-100"
-              onClick={() => window.location.href = '/settings'}
+              onClick={() => navigate('/settings')}
             >
               <LockIcon className="h-4 w-4 mr-1" />
               Secure Now
@@ -134,7 +213,7 @@ const Dashboard = () => {
           <MoodDashboard 
             moodDistribution={moodDistribution}
             weeklyMoodData={weeklyMoodData}
-            entriesCount={entriesCount}
+            entriesCount={entryCount}
           />
         ) : (
           <div className="glass-morphism mood-journal-card p-5 space-y-4 relative">
@@ -159,7 +238,7 @@ const Dashboard = () => {
               <MoodDashboard 
                 moodDistribution={moodDistribution}
                 weeklyMoodData={weeklyMoodData}
-                entriesCount={entriesCount}
+                entriesCount={entryCount}
               />
             </div>
           </div>

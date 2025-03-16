@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/select';
 import { LockIcon, FileTextIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ReportGeneratorProps {
   isPremium?: boolean;
@@ -19,43 +21,98 @@ interface ReportGeneratorProps {
   insightsView?: boolean;
 }
 
+interface Report {
+  id: string;
+  user_id: string;
+  timeframe: string;
+  content: string;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+}
+
 const timeframeOptions = [
-  { value: 'recent', label: 'Most Recent Entries' },
-  { value: 'week', label: 'Past Week' },
-  { value: 'twoWeeks', label: 'Past Two Weeks' },
-  { value: 'month', label: 'Past Month' },
-  { value: 'sixMonths', label: 'Past 180 Days' },
-  { value: 'year', label: 'Past Year' },
+  { value: 'recent', label: 'Most Recent Entries', days: 7 },
+  { value: 'week', label: 'Past Week', days: 7 },
+  { value: 'twoWeeks', label: 'Past Two Weeks', days: 14 },
+  { value: 'month', label: 'Past Month', days: 30 },
+  { value: 'sixMonths', label: 'Past 180 Days', days: 180 },
+  { value: 'year', label: 'Past Year', days: 365 },
 ];
 
 const ReportGenerator: React.FC<ReportGeneratorProps> = ({ 
-  isPremium = false, 
   className = '',
   insightsView = false
 }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState('month');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { user, profile } = useAuth();
+  
+  const isPremium = profile?.is_premium || false;
 
-  const handleGenerateReport = () => {
-    const selectedTimeframe = timeframeOptions.find(option => option.value === timeframe);
+  const handleGenerateReport = async () => {
+    if (!user) return;
     
-    toast({
-      title: "Report Generation Initiated",
-      description: `Generating AI insights report for ${selectedTimeframe?.label.toLowerCase()}. This will be ready shortly.`,
-    });
-    
-    // Mock report generation - in a real app, this would call an API
-    setTimeout(() => {
+    try {
+      setIsGenerating(true);
+      
+      const selectedOption = timeframeOptions.find(option => option.value === timeframe);
+      if (!selectedOption) return;
+      
+      toast({
+        title: "Report Generation Initiated",
+        description: `Generating AI insights report for ${selectedOption.label.toLowerCase()}. This will be ready shortly.`,
+      });
+      
+      // Calculate date range
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - selectedOption.days);
+      
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('generate-ai-report', {
+        body: {
+          userId: user.id,
+          timeframe: selectedOption.label,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        },
+      });
+      
+      if (error) {
+        console.error('Error generating report:', error);
+        toast({
+          title: "Report Generation Failed",
+          description: error.message || "An error occurred while generating your report.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Handle successful report generation
       toast({
         title: "Report Ready",
-        description: "Your AI insights report has been generated and is ready to download.",
+        description: "Your AI insights report has been generated and is ready to view.",
       });
-    }, 3000);
+      
+      // In a real app, you might navigate to a report viewer or open a modal
+      console.log('Generated report:', data.report);
+    } catch (error: any) {
+      console.error('Error in handleGenerateReport:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Something went wrong while generating your report.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handlePremiumClick = () => {
-    // Redirect to settings page for premium upgrade instead of showing toast
+    // Redirect to settings page for premium upgrade
     navigate('/settings');
   };
 
@@ -63,9 +120,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
   const containerClasses = insightsView 
     ? "px-4 py-3 bg-white/80 rounded-lg border border-primary/10 mb-4" 
     : "glass-morphism mood-journal-card space-y-4";
-
-  // For the preview window, always show the premium UI
-  const showPremiumUI = true; // This is for the preview
 
   return (
     <div className={`${containerClasses} ${className}`}>
@@ -87,34 +141,32 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           </div>
           
           {/* Show premium UI in the preview even for free users */}
-          {showPremiumUI && (
-            <div className="space-y-4 mt-4 border-t pt-4 opacity-90">
-              <p className="text-sm text-muted-foreground italic">
-                Preview of premium features:
-              </p>
-              <div className="space-y-2">
-                <Label htmlFor="timeframe-preview">Select Timeframe</Label>
-                <Select disabled>
-                  <SelectTrigger className="w-full opacity-80">
-                    <SelectValue placeholder="Past Month" />
-                  </SelectTrigger>
-                </Select>
-              </div>
-              
-              <Button 
-                className="w-full opacity-80" 
-                disabled
-              >
-                <FileTextIcon className="h-4 w-4 mr-2" />
-                Generate Report
-              </Button>
-              
-              <div className="text-xs text-muted-foreground opacity-80">
-                Reports include sentiment analysis, common triggers, and actionable recommendations
-                based on your entries during the selected timeframe.
-              </div>
+          <div className="space-y-4 mt-4 border-t pt-4 opacity-90">
+            <p className="text-sm text-muted-foreground italic">
+              Preview of premium features:
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="timeframe-preview">Select Timeframe</Label>
+              <Select disabled>
+                <SelectTrigger className="w-full opacity-80">
+                  <SelectValue placeholder="Past Month" />
+                </SelectTrigger>
+              </Select>
             </div>
-          )}
+            
+            <Button 
+              className="w-full opacity-80" 
+              disabled
+            >
+              <FileTextIcon className="h-4 w-4 mr-2" />
+              Generate Report
+            </Button>
+            
+            <div className="text-xs text-muted-foreground opacity-80">
+              Reports include sentiment analysis, common triggers, and actionable recommendations
+              based on your entries during the selected timeframe.
+            </div>
+          </div>
           
           <Button 
             onClick={handlePremiumClick}
@@ -152,9 +204,22 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           <Button 
             onClick={handleGenerateReport}
             className="w-full"
+            disabled={isGenerating}
           >
-            <FileTextIcon className="h-4 w-4 mr-2" />
-            Generate Report
+            {isGenerating ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileTextIcon className="h-4 w-4 mr-2" />
+                Generate Report
+              </>
+            )}
           </Button>
           
           <div className="text-xs text-muted-foreground">

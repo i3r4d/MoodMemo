@@ -9,13 +9,132 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      ai_reports: {
+        Row: {
+          content: string
+          created_at: string
+          end_date: string
+          id: string
+          start_date: string
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          end_date: string
+          id?: string
+          start_date: string
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          start_date?: string
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          encrypted: boolean | null
+          id: string
+          mood: string | null
+          text: string
+          timestamp: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          encrypted?: boolean | null
+          id?: string
+          mood?: string | null
+          text: string
+          timestamp?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          encrypted?: boolean | null
+          id?: string
+          mood?: string | null
+          text?: string
+          timestamp?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          is_premium: boolean | null
+          premium_expires_at: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id: string
+          is_premium?: boolean | null
+          premium_expires_at?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_premium?: boolean | null
+          premium_expires_at?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_premium_user: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

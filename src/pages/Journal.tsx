@@ -4,50 +4,226 @@ import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import VoiceJournal from '@/components/VoiceJournal';
 import JournalEntry from '@/components/JournalEntry';
-import useJournalEntries from '@/hooks/useJournalEntries';
 import { analyzeMood } from '@/utils/moodAnalysis';
 import AnimatedTransition from '@/components/AnimatedTransition';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+
+interface JournalEntry {
+  id: string;
+  audioUrl: string | null;
+  text: string;
+  timestamp: string;
+  mood: 'joy' | 'calm' | 'neutral' | 'sad' | 'stress' | null;
+}
 
 const Journal = () => {
-  const { 
-    entries, 
-    isLoading, 
-    addEntry, 
-    deleteEntry 
-  } = useJournalEntries();
-  
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-
+  const { user } = useAuth();
+  
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleSaveJournal = (audioUrl: string | null, text: string) => {
-    // Analyze the mood from the text
-    const mood = analyzeMood(text);
+  // Fetch journal entries from Supabase
+  useEffect(() => {
+    const fetchEntries = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .select('id, text, audio_url, timestamp, mood')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching journal entries:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load your journal entries',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Transform data to match our JournalEntry interface
+        const transformedData = data.map(entry => ({
+          id: entry.id,
+          text: entry.text,
+          audioUrl: entry.audio_url,
+          timestamp: entry.timestamp,
+          mood: entry.mood as JournalEntry['mood'],
+        }));
+        
+        setEntries(transformedData);
+      } catch (error) {
+        console.error('Error in fetchEntries:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Add the new entry with current timestamp
-    addEntry({
-      audioUrl,
-      text,
-      timestamp: new Date().toISOString(),
-      mood
-    });
+    fetchEntries();
+  }, [user]);
+
+  const uploadAudio = async (audioBlob: Blob): Promise<string | null> => {
+    if (!user) return null;
     
-    // Show a toast notification
-    toast({
-      title: 'Journal Entry Saved',
-      description: 'Your entry has been added to your journal.'
-    });
+    try {
+      const fileName = `${user.id}/${uuidv4()}.webm`;
+      
+      const { data, error } = await supabase.storage
+        .from('audio_files')
+        .upload(fileName, audioBlob, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: 'audio/webm',
+        });
+      
+      if (error) {
+        console.error('Error uploading audio:', error);
+        return null;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('audio_files')
+        .getPublicUrl(fileName);
+      
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error('Error in uploadAudio:', error);
+      return null;
+    }
   };
 
-  const handleDeleteEntry = (id: string) => {
-    deleteEntry(id);
+  const handleSaveJournal = async (audioUrl: string | null, text: string) => {
+    if (!user) return;
     
-    toast({
-      title: 'Entry Deleted',
-      description: 'Your journal entry has been removed.'
-    });
+    try {
+      // Analyze the mood from the text
+      const mood = analyzeMood(text);
+      
+      let finalAudioUrl = audioUrl;
+      
+      // If we have audio and it's a blob URL, we need to upload it to Supabase
+      if (audioUrl && audioUrl.startsWith('blob:')) {
+        const response = await fetch(audioUrl);
+        const audioBlob = await response.blob();
+        finalAudioUrl = await uploadAudio(audioBlob);
+      }
+      
+      // Current timestamp
+      const timestamp = new Date().toISOString();
+      
+      // Add to Supabase
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .insert({
+          user_id: user.id,
+          text,
+          audio_url: finalAudioUrl,
+          timestamp,
+          mood,
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error saving journal entry:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to save your journal entry',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Add to local state
+      const newEntry: JournalEntry = {
+        id: data.id,
+        text,
+        audioUrl: finalAudioUrl,
+        timestamp,
+        mood,
+      };
+      
+      setEntries(prev => [newEntry, ...prev]);
+      
+      // Show a toast notification
+      toast({
+        title: 'Journal Entry Saved',
+        description: 'Your entry has been added to your journal.'
+      });
+    } catch (error) {
+      console.error('Error in handleSaveJournal:', error);
+      toast({
+        title: 'Error',
+        description: 'Something went wrong while saving your journal entry',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      // Find the entry to get the audio URL if any
+      const entry = entries.find(e => e.id === id);
+      
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('journal_entries')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Error deleting journal entry:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to delete your journal entry',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // If there was an audio file, delete it from storage
+      if (entry?.audioUrl) {
+        // Extract the path from the URL
+        const url = new URL(entry.audioUrl);
+        const pathParts = url.pathname.split('/');
+        const filePath = pathParts.slice(pathParts.indexOf('audio_files') + 1).join('/');
+        
+        const { error: storageError } = await supabase.storage
+          .from('audio_files')
+          .remove([filePath]);
+        
+        if (storageError) {
+          console.error('Error deleting audio file:', storageError);
+        }
+      }
+      
+      // Update local state
+      setEntries(prev => prev.filter(entry => entry.id !== id));
+      
+      toast({
+        title: 'Entry Deleted',
+        description: 'Your journal entry has been removed.'
+      });
+    } catch (error) {
+      console.error('Error in handleDeleteEntry:', error);
+      toast({
+        title: 'Error',
+        description: 'Something went wrong while deleting your journal entry',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Animation variants
