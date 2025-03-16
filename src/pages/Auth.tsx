@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,13 +21,17 @@ const Auth = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { signIn, signUp, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const { signIn, signUp, isAuthenticated, isLoading: authLoading } = useAuth();
 
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/journal');
+  // Get the intended destination from location state, or default to '/journal'
+  const from = location.state?.from?.pathname || '/journal';
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, authLoading, navigate, from]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +69,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/journal`
+          redirectTo: `${window.location.origin}${from}`
         }
       });
       
@@ -84,6 +88,20 @@ const Auth = () => {
       });
     }
   };
+
+  // If still loading auth state, show a loading indicator
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // If already authenticated, don't render the Auth page
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <AnimatedTransition keyValue="auth">

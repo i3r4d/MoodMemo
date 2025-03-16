@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VoiceJournalProps {
   onSave: (audioUrl: string | null, text: string) => void;
@@ -29,24 +30,71 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
   const [text, setText] = useState('');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
+  const { isPremium } = useAuth();
+  
+  // Web Speech API recognition
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  
+  // Initialize Web Speech API
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      recognitionInstance.lang = 'en-US';
+      
+      recognitionInstance.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        setText(prevText => prevText + finalTranscript);
+      };
+      
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          toast({
+            title: "Microphone Access Denied",
+            description: "Please enable microphone access to use voice recording.",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      setRecognition(recognitionInstance);
+    }
+  }, []);
   
   const { 
     isRecording, 
     audioUrl, 
-    startRecording, 
-    stopRecording, 
+    startRecording: startMediaRecording, 
+    stopRecording: stopMediaRecording, 
     error,
     recordingTime 
   } = useVoiceRecorder({
     onRecordingComplete: (blob, url) => {
-      // Simulate transcription with a delay
-      setIsTranscribing(true);
-      setTimeout(() => {
-        // In a real implementation, we would send the blob to a speech-to-text API
-        const mockTranscription = "This is a simulated transcription of your voice recording. In the full version, this would be your actual words transcribed using a voice-to-text API.";
-        setText(mockTranscription);
-        setIsTranscribing(false);
-      }, 1500);
+      // Only use transcription for premium users
+      if (isPremium) {
+        setIsTranscribing(true);
+        // In a real app, this would call an API to transcribe the audio
+        setTimeout(() => {
+          const mockTranscription = "This is a simulated transcription for premium users. In the full version, this would be your actual words transcribed using an AI API.";
+          setText(prevText => prevText + mockTranscription);
+          setIsTranscribing(false);
+        }, 1500);
+      }
     }
   });
 
@@ -55,9 +103,43 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
     setCurrentPrompt(journalPrompts[Math.floor(Math.random() * journalPrompts.length)]);
   }, []);
 
+  const startSpeechRecognition = () => {
+    if (recognition) {
+      try {
+        recognition.start();
+        return true;
+      } catch (err) {
+        console.error('Error starting speech recognition:', err);
+        return false;
+      }
+    }
+    return false;
+  };
+  
+  const stopSpeechRecognition = () => {
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (err) {
+        console.error('Error stopping speech recognition:', err);
+      }
+    }
+  };
+
   const handleStartRecording = async () => {
     try {
-      await startRecording();
+      const speechStarted = startSpeechRecognition();
+      
+      // Always start media recording for storing the audio
+      await startMediaRecording();
+      
+      if (!speechStarted && !isPremium) {
+        toast({
+          title: "Speech Recognition Unavailable",
+          description: "Your browser doesn't support speech recognition. Text transcription will be unavailable.",
+          variant: "destructive",
+        });
+      }
     } catch (err) {
       toast({
         title: "Recording Error",
@@ -66,16 +148,16 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
       });
     }
   };
+  
+  const handleStopRecording = () => {
+    stopSpeechRecognition();
+    stopMediaRecording();
+  };
 
   const handleSave = useCallback(() => {
     if (text.trim()) {
       onSave(audioUrl, text);
       setText('');
-      // If we had the URL.revokeObjectURL here, the audio would be unplayable
-      toast({
-        title: "Journal Entry Saved",
-        description: "Your thoughts have been recorded.",
-      });
       // Set a new random prompt after saving
       setCurrentPrompt(journalPrompts[Math.floor(Math.random() * journalPrompts.length)]);
     } else {
@@ -134,7 +216,7 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
               </motion.div>
               
               <motion.button
-                onClick={stopRecording}
+                onClick={handleStopRecording}
                 className={cn(
                   "mt-6 px-5 py-2 rounded-lg bg-primary/90 text-white",
                   "hover:bg-primary focus-ring font-medium"

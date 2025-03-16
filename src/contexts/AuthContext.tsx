@@ -13,6 +13,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
   profile: UserProfile | null;
+  isPremium: boolean;
 }
 
 export interface UserProfile {
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         fetchProfile(session.user.id);
       } else {
         setIsLoading(false);
+        setProfile(null);
       }
     });
 
@@ -56,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
+        setIsPremium(false);
         setIsLoading(false);
       }
     });
@@ -75,6 +79,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error fetching profile:', error);
       } else if (data) {
         setProfile(data as UserProfile);
+        
+        // Check if user is premium
+        setIsPremium(
+          data.is_premium && 
+          (!data.premium_expires_at || new Date(data.premium_expires_at) > new Date())
+        );
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -143,6 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         isAuthenticated: !!user,
         profile,
+        isPremium,
       }}
     >
       {children}
