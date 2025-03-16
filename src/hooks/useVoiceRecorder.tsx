@@ -1,86 +1,48 @@
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-
-interface UseVoiceRecorderProps {
-  onRecordingComplete?: (blob: Blob, audioUrl: string) => void;
-}
+import { useState, useRef, useCallback } from 'react';
 
 interface UseVoiceRecorderReturn {
   isRecording: boolean;
-  audioUrl: string | null;
-  startRecording: () => Promise<void>;
-  stopRecording: () => void;
-  error: string | null;
   recordingTime: number;
+  audioUrl: string | null;
+  recordingBlob: Blob | null; // Add this property
+  error: Error | null;
+  startRecording: () => Promise<void>;
+  stopRecording: () => Promise<Blob | null>;
+  resetRecording: () => void;
 }
 
-export const useVoiceRecorder = ({ 
-  onRecordingComplete 
-}: UseVoiceRecorderProps = {}): UseVoiceRecorderReturn => {
+export const useVoiceRecorder = (): UseVoiceRecorderReturn => {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null); // Add this state
+  const [error, setError] = useState<Error | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-  
-  // Clean up function to stop everything
-  const cleanup = useCallback(() => {
-    if (mediaRecorderRef.current) {
-      if (mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
-    }
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    
-    if (timerRef.current) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    chunksRef.current = [];
-  }, []);
-  
-  // Clean up when component unmounts
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
   
   const startRecording = useCallback(async () => {
     try {
-      cleanup();
+      // Reset states
       setError(null);
+      setAudioUrl(null);
+      setRecordingBlob(null);
+      audioChunksRef.current = [];
       
+      // Get media stream
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
       
+      // Create media recorder
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
+      // Set up event handlers
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        
-        if (onRecordingComplete) {
-          onRecordingComplete(audioBlob, url);
-        }
-        
-        setIsRecording(false);
-        setRecordingTime(0);
       };
       
       // Start recording
@@ -88,40 +50,78 @@ export const useVoiceRecorder = ({
       setIsRecording(true);
       
       // Start timer
+      let seconds = 0;
       timerRef.current = window.setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        seconds++;
+        setRecordingTime(seconds);
       }, 1000);
-      
     } catch (err) {
-      console.error('Error starting voice recording:', err);
-      setError('Microphone access denied or not available');
-      setIsRecording(false);
+      setError(err instanceof Error ? err : new Error('Unknown error in useVoiceRecorder'));
+      console.error('Error starting recording:', err);
     }
-  }, [cleanup, onRecordingComplete]);
+  }, []);
   
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+  const stopRecording = useCallback(async (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+        setIsRecording(false);
+        resolve(null);
+        return;
+      }
       
+      // Stop timer
       if (timerRef.current) {
-        window.clearInterval(timerRef.current);
+        clearInterval(timerRef.current);
         timerRef.current = null;
       }
       
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
+      // Handle recording completion
+      mediaRecorderRef.current.onstop = () => {
+        // Combine audio chunks into a single blob
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setRecordingBlob(audioBlob); // Set the blob in state
+        
+        // Create URL for the audio blob
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
+        
+        // Stop all tracks in the stream
+        if (mediaRecorderRef.current) {
+          const stream = mediaRecorderRef.current.stream;
+          stream.getTracks().forEach(track => track.stop());
+        }
+        
+        setIsRecording(false);
+        resolve(audioBlob);
+      };
+      
+      // Stop recording
+      mediaRecorderRef.current.stop();
+    });
+  }, []);
+  
+  const resetRecording = useCallback(() => {
+    // Revoke object URL to prevent memory leaks
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
     }
-  }, [isRecording]);
+    
+    // Reset states
+    setAudioUrl(null);
+    setRecordingTime(0);
+    setRecordingBlob(null);
+    setError(null);
+    audioChunksRef.current = [];
+  }, [audioUrl]);
   
   return {
     isRecording,
+    recordingTime,
     audioUrl,
+    recordingBlob, // Include this in the return
+    error,
     startRecording,
     stopRecording,
-    error,
-    recordingTime
+    resetRecording,
   };
 };
-
-export default useVoiceRecorder;

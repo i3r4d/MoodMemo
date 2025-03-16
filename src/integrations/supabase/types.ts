@@ -97,6 +97,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          is_admin: boolean | null
           is_premium: boolean | null
           premium_expires_at: string | null
           updated_at: string
@@ -107,6 +108,7 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          is_admin?: boolean | null
           is_premium?: boolean | null
           premium_expires_at?: string | null
           updated_at?: string
@@ -117,6 +119,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          is_admin?: boolean | null
           is_premium?: boolean | null
           premium_expires_at?: string | null
           updated_at?: string
