@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { toast } from '@/hooks/use-toast';
@@ -7,10 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangleIcon, FingerprintIcon, ShieldIcon, LockIcon, CreditCardIcon, EyeIcon, KeyIcon } from 'lucide-react';
+import { 
+  AlertTriangleIcon, 
+  FingerprintIcon, 
+  ShieldIcon, 
+  LockIcon, 
+  CreditCardIcon, 
+  EyeIcon, 
+  KeyIcon, 
+  CheckCircleIcon,
+  CalendarIcon
+} from 'lucide-react';
 import ReportGenerator from '@/components/ReportGenerator';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import PremiumCheckout from '@/components/PremiumCheckout';
+import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 const Settings = () => {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -18,22 +31,61 @@ const Settings = () => {
   const [encryptData, setEncryptData] = useState(false);
   const [pinEnabled, setPinEnabled] = useState(false);
   const [pinCode, setPinCode] = useState('');
+  const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, profile, isPremium } = useAuth();
+  const [searchParams] = useSearchParams();
   
-  const handleReset = () => {
-    toast({
-      title: "Data Cleared",
-      description: "All your journal entries have been reset.",
-    });
+  // Check for payment success in URL parameters
+  useEffect(() => {
+    const paymentSuccess = searchParams.get('payment_success');
+    if (paymentSuccess === 'true') {
+      toast({
+        title: "Premium Subscription Activated",
+        description: "Thank you for subscribing! Your premium features are now active.",
+      });
+      // Remove the query parameter
+      navigate('/settings', { replace: true });
+    }
+  }, [searchParams, navigate]);
+  
+  const handleReset = async () => {
+    if (!user) return;
+    
+    try {
+      if (isPremium) {
+        // For premium users, clear entries from database
+        const { error } = await supabase
+          .from('journal_entries')
+          .delete()
+          .eq('user_id', user.id);
+          
+        if (error) throw error;
+      } else {
+        // For free users, clear local storage
+        localStorage.removeItem('moodmemo_journal_entries');
+      }
+      
+      toast({
+        title: "Data Cleared",
+        description: "All your journal entries have been reset.",
+      });
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear your data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubscribe = () => {
-    // This function would redirect to a subscription page in a real app
-    navigate('/settings'); // In a real app, this would go to a specific payment page
+    setIsPremiumDialogOpen(true);
   };
   
   const handleEnableBiometric = () => {
-    // Mock biometric authentication
+    // This would use the Web Authentication API in a real implementation
     toast({
       title: "Biometric Authentication",
       description: "On a real device, this would prompt for fingerprint or Face ID.",
@@ -59,10 +111,44 @@ const Settings = () => {
   };
   
   const handleCrisisResourcesClick = () => {
+    window.open('https://988lifeline.org/', '_blank');
     toast({
       title: "Crisis Resources",
       description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988.",
       variant: "destructive",
+    });
+  };
+
+  const handleExportJSON = () => {
+    if (!user) {
+      toast({
+        title: "Export Failed",
+        description: "You must be logged in to export your data.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // This would be connected to real data in a production app
+    const mockData = {
+      entries: localStorage.getItem('moodmemo_journal_entries') || '[]',
+      timestamp: new Date().toISOString(),
+      user: user.id,
+    };
+    
+    const dataStr = JSON.stringify(mockData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `moodmemo-export-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    toast({
+      title: "Export Successful",
+      description: "Your journal data has been exported as JSON.",
     });
   };
 
@@ -154,12 +240,15 @@ const Settings = () => {
                     Local Storage Only
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Entries never leave your device unless exported
+                    {isPremium 
+                      ? "Premium accounts store entries in the cloud"
+                      : "Entries never leave your device unless exported"}
                   </p>
                 </div>
                 <Switch 
-                  checked={localStorageOnly} 
-                  onCheckedChange={setLocalStorageOnly} 
+                  checked={!isPremium && localStorageOnly} 
+                  onCheckedChange={setLocalStorageOnly}
+                  disabled={isPremium}
                 />
               </div>
               
@@ -180,7 +269,7 @@ const Settings = () => {
               </div>
               
               <div className="pt-4 border-t">
-                <ReportGenerator isPremium={false} />
+                <ReportGenerator insightsView={true} />
               </div>
               
               <div className="pt-4 border-t">
@@ -190,7 +279,11 @@ const Settings = () => {
                   </div>
                   <div>
                     <p className="font-medium">Privacy Disclaimer</p>
-                    <p className="text-blue-600 mt-1">Your data is stored locally and never shared unless you export a report. We value your privacy and security.</p>
+                    <p className="text-blue-600 mt-1">
+                      {isPremium 
+                        ? "Premium accounts store journal entries and audio in the cloud with encryption. We respect your privacy and never share your data."
+                        : "Your data is stored locally and never shared unless you export a report. We value your privacy and security."}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -205,47 +298,106 @@ const Settings = () => {
               Premium Membership
             </h2>
             
-            <div className="p-4 rounded-lg bg-white space-y-3 border border-gray-100">
-              <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-                <div className="text-muted-foreground">Feature</div>
-                <div className="font-medium text-center">Free</div>
-                <div className="font-medium text-center text-primary">Premium</div>
+            {isPremium ? (
+              <div className="p-4 rounded-lg bg-white space-y-3 border border-gray-100">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-green-800">Premium Account Active</h3>
+                    <p className="text-sm text-green-700">
+                      You have access to all premium features
+                    </p>
+                    
+                    {profile?.premium_expires_at && (
+                      <div className="flex items-center text-sm text-muted-foreground mt-2">
+                        <CalendarIcon className="h-4 w-4 mr-1" />
+                        Renews on {format(new Date(profile.premium_expires_at), 'MMM dd, yyyy')}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
-                <div>Voice Journaling</div>
-                <div className="text-center">✓</div>
-                <div className="text-center">✓</div>
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                    <span>Unlimited journal entries with cloud sync</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                    <span>Premium transcription with enhanced accuracy</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                    <span>Ad-free experience throughout the app</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                    <span>AI-powered insights and reports</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                    <span>All premium guided exercises</span>
+                  </div>
+                </div>
                 
-                <div>Basic Mood Tracking</div>
-                <div className="text-center">✓</div>
-                <div className="text-center">✓</div>
-                
-                <div>Ads</div>
-                <div className="text-center">Yes</div>
-                <div className="text-center">No Ads</div>
-                
-                <div>Guided Exercises</div>
-                <div className="text-center">5 Basic</div>
-                <div className="text-center">50+ Premium</div>
-                
-                <div>Advanced Insights</div>
-                <div className="text-center">—</div>
-                <div className="text-center">✓</div>
-                
-                <div>PDF Export</div>
-                <div className="text-center">—</div>
-                <div className="text-center">✓</div>
+                <Button 
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => {
+                    toast({
+                      title: "Subscription Management",
+                      description: "To manage your subscription, please visit your account settings on our website.",
+                    });
+                  }}
+                >
+                  Manage Subscription
+                </Button>
               </div>
-              
-              <Button 
-                onClick={handleSubscribe}
-                className="w-full bg-gradient-to-r from-primary to-primary/80"
-              >
-                Upgrade to Premium - $4.99/month
-              </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                Cancel anytime • 7-day free trial
-              </p>
-            </div>
+            ) : (
+              <div className="p-4 rounded-lg bg-white space-y-3 border border-gray-100">
+                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                  <div className="text-muted-foreground">Feature</div>
+                  <div className="font-medium text-center">Free</div>
+                  <div className="font-medium text-center text-primary">Premium</div>
+                  
+                  <div>Voice Journaling</div>
+                  <div className="text-center">Basic</div>
+                  <div className="text-center">Advanced</div>
+                  
+                  <div>Cloud Storage</div>
+                  <div className="text-center">—</div>
+                  <div className="text-center">Unlimited</div>
+                  
+                  <div>Ads</div>
+                  <div className="text-center">Yes</div>
+                  <div className="text-center">No Ads</div>
+                  
+                  <div>Guided Exercises</div>
+                  <div className="text-center">5 Basic</div>
+                  <div className="text-center">50+ Premium</div>
+                  
+                  <div>Advanced Insights</div>
+                  <div className="text-center">—</div>
+                  <div className="text-center">✓</div>
+                  
+                  <div>Export Options</div>
+                  <div className="text-center">JSON only</div>
+                  <div className="text-center">PDF, CSV, JSON</div>
+                </div>
+                
+                <Button 
+                  onClick={handleSubscribe}
+                  className="w-full bg-gradient-to-r from-primary to-primary/80"
+                >
+                  Upgrade to Premium - $4.99/month
+                </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  Cancel anytime • 7-day free trial
+                </p>
+              </div>
+            )}
           </div>
         </div>
         
@@ -256,9 +408,38 @@ const Settings = () => {
             <div>
               <p className="font-medium">Export Data</p>
               <p className="text-sm text-muted-foreground">Download your journal entries</p>
-              <Button className="mt-2 text-sm px-3 py-1" variant="outline" size="sm">
+              <Button 
+                className="mt-2 text-sm px-3 py-1" 
+                variant="outline" 
+                size="sm"
+                onClick={handleExportJSON}
+              >
                 Export as JSON
               </Button>
+              
+              {isPremium && (
+                <Button 
+                  className="mt-2 ml-2 text-sm px-3 py-1" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    toast({
+                      title: "PDF Export",
+                      description: "Your journal entries are being prepared as a PDF document.",
+                    });
+                    
+                    // Simulate PDF generation
+                    setTimeout(() => {
+                      toast({
+                        title: "Export Complete",
+                        description: "Your PDF export is ready for download.",
+                      });
+                    }, 2000);
+                  }}
+                >
+                  Export as PDF
+                </Button>
+              )}
             </div>
             
             <div>
@@ -277,10 +458,17 @@ const Settings = () => {
         </div>
         
         <div className="text-center text-sm text-muted-foreground">
-          <p>MoodMemo v0.1.0</p>
+          <p>MoodMemo v1.0.0</p>
           <p>© 2023 MoodMemo. All rights reserved.</p>
         </div>
       </div>
+      
+      {/* Premium Checkout Dialog */}
+      <PremiumCheckout 
+        isOpen={isPremiumDialogOpen} 
+        onClose={() => setIsPremiumDialogOpen(false)} 
+      />
+      
     </AnimatedTransition>
   );
 };

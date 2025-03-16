@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
+import { useVoiceTranscription } from '@/hooks/useVoiceTranscription';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +29,6 @@ const journalPrompts = [
 
 const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
   const [text, setText] = useState('');
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const { isPremium } = useAuth();
   
@@ -76,25 +76,23 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
     }
   }, []);
   
+  // Voice recorder hook for audio recording
   const { 
     isRecording, 
     audioUrl, 
     startRecording: startMediaRecording, 
     stopRecording: stopMediaRecording, 
-    error,
-    recordingTime 
-  } = useVoiceRecorder({
-    onRecordingComplete: (blob, url) => {
-      // Only use transcription for premium users
-      if (isPremium) {
-        setIsTranscribing(true);
-        // In a real app, this would call an API to transcribe the audio
-        setTimeout(() => {
-          const mockTranscription = "This is a simulated transcription for premium users. In the full version, this would be your actual words transcribed using an AI API.";
-          setText(prevText => prevText + mockTranscription);
-          setIsTranscribing(false);
-        }, 1500);
-      }
+    recordingTime,
+    audioBlob
+  } = useVoiceRecorder();
+
+  // Server-based voice transcription for premium users
+  const { 
+    isTranscribing, 
+    transcribeAudio 
+  } = useVoiceTranscription({
+    onTranscriptionComplete: (transcriptionText) => {
+      setText(prevText => prevText + transcriptionText);
     }
   });
 
@@ -128,16 +126,18 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
 
   const handleStartRecording = async () => {
     try {
+      // Start browser-based speech recognition
       const speechStarted = startSpeechRecognition();
       
-      // Always start media recording for storing the audio
+      // Start media recording for storing the audio
       await startMediaRecording();
       
-      if (!speechStarted && !isPremium) {
+      if (!speechStarted) {
         toast({
           title: "Speech Recognition Unavailable",
-          description: "Your browser doesn't support speech recognition. Text transcription will be unavailable.",
-          variant: "destructive",
+          description: "Your browser doesn't support speech recognition. " + 
+            (isPremium ? "Premium server-based transcription will be used instead." : "Text transcription will be unavailable."),
+          variant: "warning",
         });
       }
     } catch (err) {
@@ -149,9 +149,22 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
     }
   };
   
-  const handleStopRecording = () => {
+  const handleStopRecording = async () => {
+    // Stop browser-based speech recognition
     stopSpeechRecognition();
-    stopMediaRecording();
+    
+    // Stop media recording
+    const blob = await stopMediaRecording();
+    
+    // For premium users, use server-based transcription
+    if (isPremium && blob) {
+      try {
+        await transcribeAudio(blob);
+      } catch (error) {
+        console.error("Error in server transcription:", error);
+        // We already show a toast in the hook, no need to show another
+      }
+    }
   };
 
   const handleSave = useCallback(() => {
@@ -253,7 +266,9 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
                   <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm rounded-lg">
                     <div className="flex flex-col items-center gap-2">
                       <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm text-muted-foreground">Transcribing...</span>
+                      <span className="text-sm text-muted-foreground">
+                        Transcribing with premium service...
+                      </span>
                     </div>
                   </div>
                 )}
@@ -305,12 +320,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
           )}
         </AnimatePresence>
       </div>
-      
-      {error && (
-        <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-          {error}
-        </div>
-      )}
     </div>
   );
 };
