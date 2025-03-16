@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangleIcon, FingerprintIcon, ShieldIcon, LockIcon, CreditCardIcon, EyeIcon, KeyIcon } from 'lucide-react';
 import ReportGenerator from '@/components/ReportGenerator';
+import { useNavigate } from 'react-router-dom';
 
 const Settings = () => {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -16,6 +18,7 @@ const Settings = () => {
   const [encryptData, setEncryptData] = useState(false);
   const [pinEnabled, setPinEnabled] = useState(false);
   const [pinCode, setPinCode] = useState('');
+  const navigate = useNavigate();
   
   const handleReset = () => {
     toast({
@@ -25,10 +28,8 @@ const Settings = () => {
   };
 
   const handleSubscribe = () => {
-    toast({
-      title: "Subscription Coming Soon",
-      description: "Premium subscription options will be available soon!",
-    });
+    // This function would redirect to a subscription page in a real app
+    navigate('/settings'); // In a real app, this would go to a specific payment page
   };
   
   const handleEnableBiometric = () => {

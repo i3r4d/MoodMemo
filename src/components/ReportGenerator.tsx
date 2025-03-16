@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { LockIcon, FileTextIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface ReportGeneratorProps {
   isPremium?: boolean;
@@ -33,6 +34,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
   insightsView = false
 }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState('month');
 
   const handleGenerateReport = () => {
@@ -53,16 +55,17 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
   };
 
   const handlePremiumClick = () => {
-    toast({
-      title: "Premium Feature",
-      description: "Upgrade to Premium for $4.99/month to access AI-generated insights reports and more.",
-    });
+    // Redirect to settings page for premium upgrade instead of showing toast
+    navigate('/settings');
   };
 
   // If in insights view, use a different styling
   const containerClasses = insightsView 
     ? "px-4 py-3 bg-white/80 rounded-lg border border-primary/10 mb-4" 
     : "glass-morphism mood-journal-card space-y-4";
+
+  // For the preview window, always show the premium UI
+  const showPremiumUI = true; // This is for the preview
 
   return (
     <div className={`${containerClasses} ${className}`}>
@@ -82,6 +85,37 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
               </p>
             </div>
           </div>
+          
+          {/* Show premium UI in the preview even for free users */}
+          {showPremiumUI && (
+            <div className="space-y-4 mt-4 border-t pt-4 opacity-90">
+              <p className="text-sm text-muted-foreground italic">
+                Preview of premium features:
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="timeframe-preview">Select Timeframe</Label>
+                <Select disabled>
+                  <SelectTrigger className="w-full opacity-80">
+                    <SelectValue placeholder="Past Month" />
+                  </SelectTrigger>
+                </Select>
+              </div>
+              
+              <Button 
+                className="w-full opacity-80" 
+                disabled
+              >
+                <FileTextIcon className="h-4 w-4 mr-2" />
+                Generate Report
+              </Button>
+              
+              <div className="text-xs text-muted-foreground opacity-80">
+                Reports include sentiment analysis, common triggers, and actionable recommendations
+                based on your entries during the selected timeframe.
+              </div>
+            </div>
+          )}
+          
           <Button 
             onClick={handlePremiumClick}
             className="w-full bg-gradient-to-r from-primary to-primary/80"

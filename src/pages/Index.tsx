@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import AuthScreen from '@/components/AuthScreen';
 const Index = () => {
   const { toast } = useToast();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const hasVisitedBefore = localStorage.getItem('hasVisitedBefore');
@@ -36,10 +37,7 @@ const Index = () => {
   };
   
   const handlePremiumClick = () => {
-    toast({
-      title: "Premium Feature",
-      description: "Upgrade to Premium for $4.99/month to access ad-free experience and all exercises.",
-    });
+    navigate('/settings');
   };
   
   if (showOnboarding) {
@@ -305,7 +303,7 @@ const Index = () => {
       </motion.div>
       
       <div className="fixed bottom-20 left-0 right-0 p-3 bg-gray-50 border-t border-gray-200 text-center text-sm text-gray-500">
-        <p>Free version supported by ethical ads. <span className="text-primary font-medium">Go premium to remove.</span></p>
+        <p>Free version supported by ethical ads. <span className="text-primary font-medium cursor-pointer" onClick={handlePremiumClick}>Go premium to remove.</span></p>
       </div>
     </div>
   );

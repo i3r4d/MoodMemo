@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { cn } from '@/lib/utils';
@@ -9,9 +9,26 @@ interface VoiceJournalProps {
   onSave: (audioUrl: string | null, text: string) => void;
 }
 
+// Array of journal prompts to display to the user
+const journalPrompts = [
+  "What's one thing that made you smile today?",
+  "Describe a moment when you felt proud of yourself.",
+  "What's been on your mind lately?",
+  "What are you grateful for today?",
+  "How would you describe your mood right now?",
+  "What's one challenge you're currently facing?",
+  "What's something you're looking forward to?",
+  "Reflect on a conversation that impacted you recently.",
+  "What's something you've learned about yourself lately?",
+  "What's one small win you had today?",
+  "How did you practice self-care today?",
+  "What would make tomorrow great?",
+];
+
 const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
   const [text, setText] = useState('');
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState('');
   
   const { 
     isRecording, 
@@ -32,6 +49,11 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
       }, 1500);
     }
   });
+
+  // Select a random prompt when the component mounts
+  useEffect(() => {
+    setCurrentPrompt(journalPrompts[Math.floor(Math.random() * journalPrompts.length)]);
+  }, []);
 
   const handleStartRecording = async () => {
     try {
@@ -54,6 +76,8 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
         title: "Journal Entry Saved",
         description: "Your thoughts have been recorded.",
       });
+      // Set a new random prompt after saving
+      setCurrentPrompt(journalPrompts[Math.floor(Math.random() * journalPrompts.length)]);
     } else {
       toast({
         title: "Cannot Save",
@@ -71,6 +95,12 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
 
   return (
     <div className="space-y-4">
+      {/* Journal Prompt Section */}
+      <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 mb-2">
+        <h3 className="text-sm font-medium text-primary/80 mb-1">Today's Journal Prompt:</h3>
+        <p className="text-lg font-medium">{currentPrompt}</p>
+      </div>
+      
       <div className={cn(
         "glass-morphism mood-journal-card space-y-4",
         "transition-all duration-300 ease-in-out",
@@ -162,7 +192,7 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
                   onClick={handleStartRecording}
                   disabled={isRecording || isTranscribing}
                   className={cn(
-                    "p-3 rounded-full",
+                    "p-3 rounded-full flex items-center gap-2",
                     "bg-primary/10 text-primary",
                     "hover:bg-primary/20 focus-ring",
                     "disabled:opacity-50 disabled:cursor-not-allowed"
@@ -173,6 +203,7 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({ onSave }) => {
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                     <line x1="12" y1="19" x2="12" y2="22"></line>
                   </svg>
+                  <span className="font-medium">New Voice Entry</span>
                 </button>
                 
                 <button
