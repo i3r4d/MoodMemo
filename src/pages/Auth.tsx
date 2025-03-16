@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { MailIcon, KeyIcon, UserIcon, GithubIcon, GoogleIcon } from 'lucide-react';
+import { MailIcon, KeyIcon, UserIcon, GithubIcon } from 'lucide-react';
+import GoogleIcon from '@/components/icons/GoogleIcon';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +23,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, isAuthenticated } = useAuth();
 
-  // Redirect if already logged in
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate('/journal');
