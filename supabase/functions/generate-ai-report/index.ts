@@ -23,28 +23,33 @@ interface RequestData {
 }
 
 serve(async (req) => {
+  console.log('Function invoked, method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Get request data
-    const { userId, timeframe, startDate, endDate } = await req.json() as RequestData;
+    const reqData = await req.json();
+    const { userId, timeframe, startDate, endDate } = reqData as RequestData;
+    
+    console.log(`Processing report request for user ${userId}, timeframe: ${timeframe}, date range: ${startDate} to ${endDate}`);
 
     // Validate the request
     if (!userId || !timeframe || !startDate || !endDate) {
+      console.error('Missing required fields:', { userId, timeframe, startDate, endDate });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Processing report request for user ${userId}, timeframe: ${timeframe}`);
-
     // Check if the user has premium
-    // We're using try/catch explicitly here to better handle any errors with the profile check
     try {
+      console.log('Checking premium status for user:', userId);
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('is_premium, premium_expires_at')
@@ -67,6 +72,8 @@ serve(async (req) => {
         );
       }
 
+      console.log('User profile:', userProfile);
+      
       const isPremium = userProfile.is_premium && 
         (!userProfile.premium_expires_at || new Date(userProfile.premium_expires_at) > new Date());
 
@@ -77,6 +84,8 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      
+      console.log('User has premium access, proceeding to fetch journal entries');
     } catch (err) {
       console.error('Error checking premium status:', err);
       return new Response(
@@ -87,6 +96,7 @@ serve(async (req) => {
 
     // Fetch user's journal entries for the specified timeframe
     try {
+      console.log(`Fetching journal entries from ${startDate} to ${endDate}`);
       const { data: entries, error: entriesError } = await supabase
         .from('journal_entries')
         .select('*')
@@ -216,7 +226,7 @@ ${recommendations.map(rec => `- ${rec}`).join('\n')}
 *This report was generated based on your journal entries from ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}.*
 `;
 
-      console.log('Report generated successfully, saving to database');
+      console.log('Report content generated, saving to database');
 
       // Save the report to the database
       try {

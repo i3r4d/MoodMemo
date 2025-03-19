@@ -82,59 +82,75 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - selectedOption.days);
       
-      // Call the edge function
-      const { data, error } = await supabase.functions.invoke('generate-ai-report', {
-        body: {
-          userId: user.id,
-          timeframe: selectedOption.label,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-        },
+      console.log('Calling edge function with params:', {
+        userId: user.id,
+        timeframe: selectedOption.label,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
       });
       
-      if (error) {
-        console.error('Error generating report:', error);
-        setError(error.message || "An error occurred while generating your report");
-        toast({
-          title: "Report Generation Failed",
-          description: error.message || "An error occurred while generating your report.",
-          variant: "destructive",
+      // Call the edge function with improved error handling
+      try {
+        const { data, error: functionError } = await supabase.functions.invoke('generate-ai-report', {
+          body: {
+            userId: user.id,
+            timeframe: selectedOption.label,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          },
         });
-        return;
-      }
-      
-      if (data.error) {
-        console.error('Error in response:', data.error);
-        setError(data.error);
         
-        // Special message for no entries
-        if (data.error.includes('No journal entries found')) {
-          toast({
-            title: "No Journal Entries Found",
-            description: "We couldn't find any journal entries for the selected timeframe. Try a different timeframe or add more entries.",
-            variant: "destructive",
-          });
-        } else {
+        if (functionError) {
+          console.error('Edge function error:', functionError);
+          setError(functionError.message || "An error occurred while generating your report");
           toast({
             title: "Report Generation Failed",
-            description: data.error || "An error occurred while generating your report.",
+            description: functionError.message || "An error occurred while generating your report.",
             variant: "destructive",
           });
+          return;
         }
-        return;
+        
+        if (data?.error) {
+          console.error('Error in edge function response:', data.error);
+          setError(data.error);
+          
+          // Special message for no entries
+          if (data.error.includes('No journal entries found')) {
+            toast({
+              title: "No Journal Entries Found",
+              description: "We couldn't find any journal entries for the selected timeframe. Try a different timeframe or add more entries.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Report Generation Failed",
+              description: data.error || "An error occurred while generating your report.",
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+        
+        // Handle successful report generation
+        toast({
+          title: "Report Ready",
+          description: "Your AI insights report has been generated and is ready to view.",
+        });
+        
+        console.log('Generated report:', data.report);
+        
+        // Auto-navigate to a report viewer would be ideal (future enhancement)
+        // navigate(`/reports/${data.report.id}`);
+      } catch (functionCallError) {
+        console.error('Error calling edge function:', functionCallError);
+        setError("Unable to connect to the report generation service. Please try again later.");
+        toast({
+          title: "Report Generation Failed",
+          description: "Failed to send a request to the Edge Function. This may be due to a network issue or the function may be unavailable.",
+          variant: "destructive",
+        });
       }
-      
-      // Handle successful report generation
-      toast({
-        title: "Report Ready",
-        description: "Your AI insights report has been generated and is ready to view.",
-      });
-      
-      // In a real app, you might navigate to a report viewer or open a modal
-      console.log('Generated report:', data.report);
-      
-      // Auto-navigate to a report viewer would be ideal (future enhancement)
-      // navigate(`/reports/${data.report.id}`);
     } catch (err: any) {
       console.error('Error in handleGenerateReport:', err);
       setError(err.message || "Something went wrong while generating your report");
