@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +8,7 @@ import { MoodType } from '@/utils/moodAnalysis';
 import MoodPicker from './MoodPicker';
 
 interface TextJournalProps {
-  onSaveEntry: (content: string, mood: MoodType | null) => void;
+  onSaveEntry?: (content: string, mood: MoodType | null) => void;
   isLoading?: boolean;
   value?: string;
   onChange?: (value: string) => void;
@@ -55,10 +56,12 @@ const TextJournal: React.FC<TextJournalProps> = ({
     
     if (onSubmit) {
       onSubmit();
-    } else {
+    } else if (onSaveEntry) {
       onSaveEntry(content, selectedMood);
       setContent('');
       setSelectedMood(null);
+    } else {
+      console.error("Either onSubmit or onSaveEntry prop must be provided");
     }
   };
 
