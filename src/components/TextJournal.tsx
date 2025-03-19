@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -10,12 +9,37 @@ import MoodPicker from './MoodPicker';
 interface TextJournalProps {
   onSaveEntry: (content: string, mood: MoodType | null) => void;
   isLoading?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
+  onSubmit?: () => Promise<void>;
+  isSubmitting?: boolean;
 }
 
-const TextJournal: React.FC<TextJournalProps> = ({ onSaveEntry, isLoading = false }) => {
-  const [content, setContent] = useState('');
+const TextJournal: React.FC<TextJournalProps> = ({ 
+  onSaveEntry, 
+  isLoading = false,
+  value, 
+  onChange,
+  onSubmit,
+  isSubmitting
+}) => {
+  const [content, setContent] = useState(value || '');
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (value !== undefined) {
+      setContent(value);
+    }
+  }, [value]);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setContent(newValue);
+    if (onChange) {
+      onChange(newValue);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +53,16 @@ const TextJournal: React.FC<TextJournalProps> = ({ onSaveEntry, isLoading = fals
       return;
     }
     
-    onSaveEntry(content, selectedMood);
-    setContent('');
-    setSelectedMood(null);
+    if (onSubmit) {
+      onSubmit();
+    } else {
+      onSaveEntry(content, selectedMood);
+      setContent('');
+      setSelectedMood(null);
+    }
   };
+
+  const isInLoadingState = isLoading || isSubmitting;
 
   return (
     <Card className="shadow-md">
@@ -45,8 +75,8 @@ const TextJournal: React.FC<TextJournalProps> = ({ onSaveEntry, isLoading = fals
             placeholder="How are you feeling today? What's on your mind?"
             className="min-h-[200px] resize-none focus-visible:ring-1"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            disabled={isLoading}
+            onChange={handleContentChange}
+            disabled={isInLoadingState}
           />
           
           <div>
@@ -57,9 +87,9 @@ const TextJournal: React.FC<TextJournalProps> = ({ onSaveEntry, isLoading = fals
           <Button 
             type="submit" 
             className="w-full"
-            disabled={isLoading}
+            disabled={isInLoadingState}
           >
-            {isLoading ? (
+            {isInLoadingState ? (
               <span className="flex items-center justify-center">
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
