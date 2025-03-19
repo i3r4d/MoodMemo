@@ -1,0 +1,12 @@
+
+{
+  "imports": {
+    "//": "Only ESM compatible packages are supported",
+    "std/server": "https://deno.land/std@0.168.0/http/server.ts",
+    "edge-runtime": "https://esm.sh/edge-runtime@2.0.0-beta.2",
+    "nanoid": "https://esm.sh/nanoid@4.0.0",
+    "openai": "https://esm.sh/openai@4.24.1",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.46.0",
+    "stripe": "https://esm.sh/stripe@12.4.0?target=deno"
+  }
+}

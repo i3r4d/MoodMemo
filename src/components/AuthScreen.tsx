@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { LockIcon, MailIcon, Shield, ShieldIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthScreenProps {
   onComplete: () => void;
@@ -14,6 +16,8 @@ interface AuthScreenProps {
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onComplete }) => {
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState<'welcome' | 'signup' | 'security'>('welcome');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +25,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onComplete }) => {
   const [enableBiometric, setEnableBiometric] = useState(false);
   const [enablePin, setEnablePin] = useState(false);
   const [pin, setPin] = useState('');
+  
+  // Skip onboarding if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      onComplete();
+    }
+  }, [isAuthenticated, onComplete]);
+  
+  // If authenticated, don't render the auth screen
+  if (isAuthenticated) {
+    return null;
+  }
   
   const handleContinue = () => {
     setStep('signup');

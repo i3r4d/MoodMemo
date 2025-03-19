@@ -13,6 +13,7 @@ import Journal from "@/pages/Journal";
 import Dashboard from "@/pages/Dashboard";
 import Exercises from "@/pages/Exercises";
 import Settings from "@/pages/Settings";
+import MyAccount from "@/pages/MyAccount";
 import NotFound from "@/pages/NotFound";
 import AuthScreen from "@/components/AuthScreen";
 import { useState } from "react";
@@ -56,7 +57,9 @@ const AppRoutes = () => {
         <AnimatePresence mode="wait">
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth" element={
+              isAuthenticated ? <Navigate to="/journal" replace /> : <Auth />
+            } />
             <Route
               path="/journal"
               element={
@@ -99,6 +102,18 @@ const AppRoutes = () => {
                 <ProtectedRoute>
                   {onboardingComplete ? (
                     <Settings />
+                  ) : (
+                    <AuthScreen onComplete={handleOnboardingComplete} />
+                  )}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-account"
+              element={
+                <ProtectedRoute>
+                  {onboardingComplete ? (
+                    <MyAccount />
                   ) : (
                     <AuthScreen onComplete={handleOnboardingComplete} />
                   )}

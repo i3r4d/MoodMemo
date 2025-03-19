@@ -1,0 +1,32 @@
+
+project_id = "dxolkbecfzspmoiszyvg"
+
+[functions.analyze-mood]
+verify_jwt = false
+import_map = [
+  "import_map.json"
+]
+
+[functions.get-mood-stats]
+verify_jwt = false
+import_map = [
+  "import_map.json"
+]
+
+[functions.generate-ai-report]
+verify_jwt = false
+import_map = [
+  "import_map.json"
+]
+
+[functions.create-payment-intent]
+verify_jwt = false
+import_map = [
+  "import_map.json"
+]
+
+[functions.transcribe-audio]
+verify_jwt = false
+import_map = [
+  "import_map.json"
+]

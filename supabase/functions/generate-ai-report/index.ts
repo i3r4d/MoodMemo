@@ -12,7 +12,8 @@ const corsHeaders = {
 // Create a Supabase client with the Deno env variables
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface RequestData {
   userId: string;
@@ -39,6 +40,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Processing report request for user ${userId}, timeframe: ${timeframe}`);
+
     // Check if the user has premium
     const { data: userProfile, error: profileError } = await supabase
       .from('profiles')
@@ -58,6 +61,7 @@ serve(async (req) => {
       (!userProfile.premium_expires_at || new Date(userProfile.premium_expires_at) > new Date());
 
     if (!isPremium) {
+      console.log(`User ${userId} does not have premium access`);
       return new Response(
         JSON.stringify({ error: 'Premium subscription required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -81,6 +85,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Found ${entries?.length || 0} entries for analysis`);
+
     // If there are no entries, return an appropriate message
     if (!entries || entries.length === 0) {
       return new Response(
@@ -89,40 +95,76 @@ serve(async (req) => {
       );
     }
 
-    // Generate a simple AI report based on the entries
-    // In a real implementation, this would call an AI service like OpenAI
+    // Generate a comprehensive AI report based on the entries
     const moodCounts: Record<string, number> = {};
     let totalWords = 0;
     let longestEntry = 0;
+    let totalCharacters = 0;
+    let commonWords: Record<string, number> = {};
+    let commonWordsList: {word: string, count: number}[] = [];
+    const stopWords = ["the", "is", "in", "and", "to", "of", "a", "i", "that", "it", "for", "on", "with", "as", "this", "at"];
     
     entries.forEach(entry => {
+      // Analyze mood patterns
       const mood = entry.mood || 'unknown';
       moodCounts[mood] = (moodCounts[mood] || 0) + 1;
       
-      const wordCount = entry.text.split(/\s+/).length;
+      // Analyze writing patterns
+      const words = entry.text.split(/\s+/).filter(word => word.length > 0);
+      const wordCount = words.length;
       totalWords += wordCount;
       longestEntry = Math.max(longestEntry, wordCount);
+      totalCharacters += entry.text.length;
+      
+      // Analyze common words (excluding stop words)
+      words.forEach(word => {
+        const cleanWord = word.toLowerCase().replace(/[^\w\s]|_/g, "");
+        if (cleanWord.length > 3 && !stopWords.includes(cleanWord)) {
+          commonWords[cleanWord] = (commonWords[cleanWord] || 0) + 1;
+        }
+      });
     });
+    
+    // Get most common words
+    commonWordsList = Object.entries(commonWords)
+      .map(([word, count]) => ({ word, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
     
     const averageWords = Math.round(totalWords / entries.length);
     const dominantMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0][0];
+    const averageCharacters = Math.round(totalCharacters / entries.length);
+    
+    // Create personalized recommendations based on mood patterns
+    const recommendations = [];
+    
+    if (dominantMood === 'stress' || dominantMood === 'sad') {
+      recommendations.push("Consider incorporating stress-reduction techniques like deep breathing or meditation into your daily routine.");
+      recommendations.push("Try to schedule more activities that bring you joy and relaxation.");
+      recommendations.push("If feelings of sadness persist, consider speaking with a mental health professional for additional support.");
+    } else if (dominantMood === 'joy' || dominantMood === 'calm') {
+      recommendations.push("Continue your current practices that are contributing to your positive mood.");
+      recommendations.push("Consider documenting what specific activities correlate with your positive emotions.");
+      recommendations.push("Share activities that bring you joy with others who might benefit from them.");
+    } else {
+      recommendations.push("Try to identify patterns in activities that trigger different emotional responses.");
+      recommendations.push("Consider incorporating mindfulness practices to increase emotional awareness.");
+      recommendations.push("Set aside regular time for self-reflection to better understand your emotional patterns.");
+    }
+    
+    recommendations.push("Journal consistently to better track your mood patterns over time.");
     
     // Create a simple analysis
     const analysis = {
       summary: `Based on your ${entries.length} journal entries from ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}, your dominant mood was "${dominantMood}".`,
       insights: [
         `You journaled ${entries.length} times during this period.`,
-        `Your entries contained an average of ${averageWords} words.`,
+        `Your entries contained an average of ${averageWords} words (${averageCharacters} characters).`,
         `Your longest entry contained ${longestEntry} words.`,
-        `Your mood distribution was: ${Object.entries(moodCounts).map(([mood, count]) => `${mood}: ${count}`).join(', ')}.`,
+        `Your mood distribution was: ${Object.entries(moodCounts).map(([mood, count]) => `${mood}: ${count} entries (${Math.round(count/entries.length*100)}%)`).join(', ')}.`,
+        `Common themes in your writing included: ${commonWordsList.map(item => `"${item.word}" (${item.count} times)`).join(', ')}.`
       ],
-      recommendations: [
-        dominantMood === 'joy' || dominantMood === 'calm' 
-          ? "Continue your current practices that are contributing to your positive mood."
-          : "Consider incorporating mood-boosting activities like exercise or mindfulness into your routine.",
-        "Try to journal consistently to better track your mood patterns.",
-        "Explore guided journaling prompts to deepen your self-reflection practice.",
-      ]
+      recommendations: recommendations
     };
     
     // Generate the content for the report
@@ -136,13 +178,25 @@ ${analysis.summary}
 ${analysis.insights.map(insight => `- ${insight}`).join('\n')}
 
 ### Mood Patterns
-Your dominant mood during this period was "${dominantMood}".
+Your dominant mood during this period was "${dominantMood}" (${Math.round(moodCounts[dominantMood]/entries.length*100)}% of entries).
+
+${Object.entries(moodCounts)
+  .sort((a, b) => b[1] - a[1])
+  .map(([mood, count]) => `- ${mood}: ${count} entries (${Math.round(count/entries.length*100)}%)`)
+  .join('\n')}
+
+### Writing Patterns
+- Average entry length: ${averageWords} words
+- Longest entry: ${longestEntry} words
+- Journal frequency: ${Math.round(entries.length / ((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))} entries per day
 
 ### Recommendations
-${analysis.recommendations.map(rec => `- ${rec}`).join('\n')}
+${recommendations.map(rec => `- ${rec}`).join('\n')}
 
 *This report was generated based on your journal entries from ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}.*
 `;
+
+    console.log('Report generated successfully, saving to database');
 
     // Save the report to the database
     const { data: report, error: reportError } = await supabase
@@ -165,14 +219,16 @@ ${analysis.recommendations.map(rec => `- ${rec}`).join('\n')}
       );
     }
 
+    console.log('Report saved successfully with ID:', report.id);
+
     return new Response(
       JSON.stringify({ report }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in generate-ai-report function:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error: ' + error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

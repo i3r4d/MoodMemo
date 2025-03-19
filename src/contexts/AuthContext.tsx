@@ -14,6 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   profile: UserProfile | null;
   isPremium: boolean;
+  isAdmin: boolean;
 }
 
 export interface UserProfile {
@@ -22,6 +23,7 @@ export interface UserProfile {
   username: string | null;
   avatar_url: string | null;
   is_premium: boolean;
+  is_admin: boolean;
   premium_expires_at: string | null;
 }
 
@@ -33,25 +35,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-        setProfile(null);
-      }
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -60,6 +50,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setProfile(null);
         setIsPremium(false);
+        setIsAdmin(false);
+        setIsLoading(false);
+      }
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Getting initial session:', session?.user?.id);
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
         setIsLoading(false);
       }
     });
@@ -69,6 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -78,13 +82,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         console.error('Error fetching profile:', error);
       } else if (data) {
-        setProfile(data as UserProfile);
+        console.log('Profile data:', data);
+        const profileData = data as UserProfile;
+        setProfile(profileData);
         
         // Check if user is premium
         setIsPremium(
-          data.is_premium && 
-          (!data.premium_expires_at || new Date(data.premium_expires_at) > new Date())
+          profileData.is_premium && 
+          (!profileData.premium_expires_at || new Date(profileData.premium_expires_at) > new Date())
         );
+        
+        // Check if user is admin
+        setIsAdmin(profileData.is_admin || false);
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -154,6 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!user,
         profile,
         isPremium,
+        isAdmin,
       }}
     >
       {children}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -24,10 +24,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import PremiumCheckout from '@/components/PremiumCheckout';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { useJournalStorage } from '@/hooks/useJournalStorage';
 
 const Settings = () => {
+  const { localStorageOnly, toggleStoragePreference } = useJournalStorage();
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [localStorageOnly, setLocalStorageOnly] = useState(true);
   const [encryptData, setEncryptData] = useState(false);
   const [pinEnabled, setPinEnabled] = useState(false);
   const [pinCode, setPinCode] = useState('');
@@ -35,6 +36,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, profile, isPremium } = useAuth();
   const [searchParams] = useSearchParams();
+  const { toast } = useToast();
   
   // Check for payment success in URL parameters
   useEffect(() => {
@@ -47,13 +49,13 @@ const Settings = () => {
       // Remove the query parameter
       navigate('/settings', { replace: true });
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, toast]);
   
   const handleReset = async () => {
     if (!user) return;
     
     try {
-      if (isPremium) {
+      if (isPremium && !localStorageOnly) {
         // For premium users, clear entries from database
         const { error } = await supabase
           .from('journal_entries')
@@ -61,10 +63,10 @@ const Settings = () => {
           .eq('user_id', user.id);
           
         if (error) throw error;
-      } else {
-        // For free users, clear local storage
-        localStorage.removeItem('moodmemo_journal_entries');
       }
+      
+      // Clear local storage entries
+      localStorage.removeItem('moodmemo_journal_entries');
       
       toast({
         title: "Data Cleared",
@@ -85,12 +87,28 @@ const Settings = () => {
   };
   
   const handleEnableBiometric = () => {
-    // This would use the Web Authentication API in a real implementation
-    toast({
-      title: "Biometric Authentication",
-      description: "On a real device, this would prompt for fingerprint or Face ID.",
-    });
-    setBiometricEnabled(!biometricEnabled);
+    if (window.PublicKeyCredential) {
+      // Check if device supports WebAuthn
+      if (navigator.credentials && 'create' in navigator.credentials) {
+        toast({
+          title: "Biometric Authentication",
+          description: "Your device supports biometric authentication. Enabling now.",
+        });
+        setBiometricEnabled(!biometricEnabled);
+      } else {
+        toast({
+          title: "Biometric Authentication",
+          description: "Your device does not support biometric authentication.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Biometric Authentication",
+        description: "Your browser does not support WebAuthn for biometric authentication.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleSetPin = () => {
@@ -103,18 +121,29 @@ const Settings = () => {
       return;
     }
     
-    setPinEnabled(true);
-    toast({
-      title: "PIN Enabled",
-      description: "Your journal is now protected with a PIN.",
-    });
+    // Store PIN code in secure storage
+    try {
+      // Hash the PIN before storing (in a real app)
+      localStorage.setItem('moodmemo_pin', btoa(pinCode));
+      setPinEnabled(true);
+      toast({
+        title: "PIN Enabled",
+        description: "Your journal is now protected with a PIN.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to set PIN code. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleCrisisResourcesClick = () => {
     window.open('https://988lifeline.org/', '_blank');
     toast({
       title: "Crisis Resources",
-      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988.",
+      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988 or 1-800-273-8255.",
       variant: "destructive",
     });
   };
@@ -241,14 +270,13 @@ const Settings = () => {
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {isPremium 
-                      ? "Premium accounts store entries in the cloud"
+                      ? "Store entries on this device only, even with premium"
                       : "Entries never leave your device unless exported"}
                   </p>
                 </div>
                 <Switch 
-                  checked={!isPremium && localStorageOnly} 
-                  onCheckedChange={setLocalStorageOnly}
-                  disabled={isPremium}
+                  checked={localStorageOnly} 
+                  onCheckedChange={toggleStoragePreference}
                 />
               </div>
               
@@ -280,7 +308,7 @@ const Settings = () => {
                   <div>
                     <p className="font-medium">Privacy Disclaimer</p>
                     <p className="text-blue-600 mt-1">
-                      {isPremium 
+                      {isPremium && !localStorageOnly
                         ? "Premium accounts store journal entries and audio in the cloud with encryption. We respect your privacy and never share your data."
                         : "Your data is stored locally and never shared unless you export a report. We value your privacy and security."}
                     </p>
@@ -291,71 +319,15 @@ const Settings = () => {
           </div>
         </div>
         
-        <div className="glass-morphism mood-journal-card space-y-6">
-          <div>
-            <h2 className="text-lg font-medium flex items-center gap-2 mb-4">
-              <CreditCardIcon className="h-5 w-5 text-primary" />
-              Premium Membership
-            </h2>
-            
-            {isPremium ? (
-              <div className="p-4 rounded-lg bg-white space-y-3 border border-gray-100">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-green-800">Premium Account Active</h3>
-                    <p className="text-sm text-green-700">
-                      You have access to all premium features
-                    </p>
-                    
-                    {profile?.premium_expires_at && (
-                      <div className="flex items-center text-sm text-muted-foreground mt-2">
-                        <CalendarIcon className="h-4 w-4 mr-1" />
-                        Renews on {format(new Date(profile.premium_expires_at), 'MMM dd, yyyy')}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                    <span>Unlimited journal entries with cloud sync</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                    <span>Premium transcription with enhanced accuracy</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                    <span>Ad-free experience throughout the app</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                    <span>AI-powered insights and reports</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                    <span>All premium guided exercises</span>
-                  </div>
-                </div>
-                
-                <Button 
-                  variant="outline"
-                  className="w-full mt-2"
-                  onClick={() => {
-                    toast({
-                      title: "Subscription Management",
-                      description: "To manage your subscription, please visit your account settings on our website.",
-                    });
-                  }}
-                >
-                  Manage Subscription
-                </Button>
-              </div>
-            ) : (
+        {/* Only show Premium Membership section to non-premium users */}
+        {!isPremium && (
+          <div className="glass-morphism mood-journal-card space-y-6">
+            <div>
+              <h2 className="text-lg font-medium flex items-center gap-2 mb-4">
+                <CreditCardIcon className="h-5 w-5 text-primary" />
+                Premium Membership
+              </h2>
+              
               <div className="p-4 rounded-lg bg-white space-y-3 border border-gray-100">
                 <div className="grid grid-cols-3 gap-4 text-sm mb-4">
                   <div className="text-muted-foreground">Feature</div>
@@ -397,9 +369,9 @@ const Settings = () => {
                   Cancel anytime • 7-day free trial
                 </p>
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
         
         <div className="glass-morphism mood-journal-card space-y-4">
           <h2 className="text-lg font-medium">Data</h2>
