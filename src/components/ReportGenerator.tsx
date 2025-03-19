@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { LockIcon, FileTextIcon } from 'lucide-react';
+import { LockIcon, FileTextIcon, AlertTriangleIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,18 +48,29 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState('month');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user, profile } = useAuth();
   
   const isPremium = profile?.is_premium || false;
 
   const handleGenerateReport = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to generate an AI insights report.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       setIsGenerating(true);
+      setError(null);
       
       const selectedOption = timeframeOptions.find(option => option.value === timeframe);
-      if (!selectedOption) return;
+      if (!selectedOption) {
+        throw new Error("Invalid timeframe selected");
+      }
       
       toast({
         title: "Report Generation Initiated",
@@ -83,11 +94,33 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       
       if (error) {
         console.error('Error generating report:', error);
+        setError(error.message || "An error occurred while generating your report");
         toast({
           title: "Report Generation Failed",
           description: error.message || "An error occurred while generating your report.",
           variant: "destructive",
         });
+        return;
+      }
+      
+      if (data.error) {
+        console.error('Error in response:', data.error);
+        setError(data.error);
+        
+        // Special message for no entries
+        if (data.error.includes('No journal entries found')) {
+          toast({
+            title: "No Journal Entries Found",
+            description: "We couldn't find any journal entries for the selected timeframe. Try a different timeframe or add more entries.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Report Generation Failed",
+            description: data.error || "An error occurred while generating your report.",
+            variant: "destructive",
+          });
+        }
         return;
       }
       
@@ -99,11 +132,15 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       
       // In a real app, you might navigate to a report viewer or open a modal
       console.log('Generated report:', data.report);
-    } catch (error: any) {
-      console.error('Error in handleGenerateReport:', error);
+      
+      // Auto-navigate to a report viewer would be ideal (future enhancement)
+      // navigate(`/reports/${data.report.id}`);
+    } catch (err: any) {
+      console.error('Error in handleGenerateReport:', err);
+      setError(err.message || "Something went wrong while generating your report");
       toast({
         title: "Error",
-        description: error.message || "Something went wrong while generating your report.",
+        description: err.message || "Something went wrong while generating your report.",
         variant: "destructive",
       });
     } finally {
@@ -184,6 +221,16 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
             Generate a detailed AI analysis of your journal entries and mood patterns
             for insights into your emotional well-being.
           </p>
+          
+          {error && (
+            <div className="p-3 bg-red-50 rounded-md border border-red-200 flex items-start gap-2">
+              <AlertTriangleIcon className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-700">Error Generating Report</p>
+                <p className="text-sm text-red-600 mt-1">{error}</p>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="timeframe">Select Timeframe</Label>

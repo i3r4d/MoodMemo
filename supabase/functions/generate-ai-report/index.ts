@@ -43,132 +43,152 @@ serve(async (req) => {
     console.log(`Processing report request for user ${userId}, timeframe: ${timeframe}`);
 
     // Check if the user has premium
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('is_premium, premium_expires_at')
-      .eq('id', userId)
-      .single();
+    // We're using try/catch explicitly here to better handle any errors with the profile check
+    try {
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_premium, premium_expires_at')
+        .eq('id', userId)
+        .single();
 
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        return new Response(
+          JSON.stringify({ error: 'Error fetching user profile', details: profileError.message }), 
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!userProfile) {
+        console.error('User profile not found for ID:', userId);
+        return new Response(
+          JSON.stringify({ error: 'User profile not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const isPremium = userProfile.is_premium && 
+        (!userProfile.premium_expires_at || new Date(userProfile.premium_expires_at) > new Date());
+
+      if (!isPremium) {
+        console.log(`User ${userId} does not have premium access`);
+        return new Response(
+          JSON.stringify({ error: 'Premium subscription required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (err) {
+      console.error('Error checking premium status:', err);
       return new Response(
-        JSON.stringify({ error: 'Error fetching user profile' }),
+        JSON.stringify({ error: 'Error checking premium status', details: err.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const isPremium = userProfile.is_premium && 
-      (!userProfile.premium_expires_at || new Date(userProfile.premium_expires_at) > new Date());
-
-    if (!isPremium) {
-      console.log(`User ${userId} does not have premium access`);
-      return new Response(
-        JSON.stringify({ error: 'Premium subscription required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Fetch user's journal entries for the specified timeframe
-    const { data: entries, error: entriesError } = await supabase
-      .from('journal_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('timestamp', startDate)
-      .lte('timestamp', endDate)
-      .order('timestamp', { ascending: false });
+    try {
+      const { data: entries, error: entriesError } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('timestamp', startDate)
+        .lte('timestamp', endDate)
+        .order('timestamp', { ascending: false });
 
-    if (entriesError) {
-      console.error('Error fetching journal entries:', entriesError);
-      return new Response(
-        JSON.stringify({ error: 'Error fetching journal entries' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      if (entriesError) {
+        console.error('Error fetching journal entries:', entriesError);
+        return new Response(
+          JSON.stringify({ error: 'Error fetching journal entries', details: entriesError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-    console.log(`Found ${entries?.length || 0} entries for analysis`);
+      console.log(`Found ${entries?.length || 0} entries for analysis`);
 
-    // If there are no entries, return an appropriate message
-    if (!entries || entries.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No journal entries found for the selected timeframe' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      // If there are no entries, return an appropriate message
+      if (!entries || entries.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No journal entries found for the selected timeframe' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-    // Generate a comprehensive AI report based on the entries
-    const moodCounts: Record<string, number> = {};
-    let totalWords = 0;
-    let longestEntry = 0;
-    let totalCharacters = 0;
-    let commonWords: Record<string, number> = {};
-    let commonWordsList: {word: string, count: number}[] = [];
-    const stopWords = ["the", "is", "in", "and", "to", "of", "a", "i", "that", "it", "for", "on", "with", "as", "this", "at"];
-    
-    entries.forEach(entry => {
-      // Analyze mood patterns
-      const mood = entry.mood || 'unknown';
-      moodCounts[mood] = (moodCounts[mood] || 0) + 1;
+      // Generate a comprehensive AI report based on the entries
+      const moodCounts: Record<string, number> = {};
+      let totalWords = 0;
+      let longestEntry = 0;
+      let totalCharacters = 0;
+      let commonWords: Record<string, number> = {};
+      let commonWordsList: {word: string, count: number}[] = [];
+      const stopWords = ["the", "is", "in", "and", "to", "of", "a", "i", "that", "it", "for", "on", "with", "as", "this", "at"];
       
-      // Analyze writing patterns
-      const words = entry.text.split(/\s+/).filter(word => word.length > 0);
-      const wordCount = words.length;
-      totalWords += wordCount;
-      longestEntry = Math.max(longestEntry, wordCount);
-      totalCharacters += entry.text.length;
-      
-      // Analyze common words (excluding stop words)
-      words.forEach(word => {
-        const cleanWord = word.toLowerCase().replace(/[^\w\s]|_/g, "");
-        if (cleanWord.length > 3 && !stopWords.includes(cleanWord)) {
-          commonWords[cleanWord] = (commonWords[cleanWord] || 0) + 1;
+      entries.forEach(entry => {
+        // Analyze mood patterns
+        const mood = entry.mood || 'unknown';
+        moodCounts[mood] = (moodCounts[mood] || 0) + 1;
+        
+        // Analyze writing patterns
+        const words = entry.text ? entry.text.split(/\s+/).filter(word => word.length > 0) : [];
+        const wordCount = words.length;
+        totalWords += wordCount;
+        longestEntry = Math.max(longestEntry, wordCount);
+        totalCharacters += entry.text ? entry.text.length : 0;
+        
+        // Analyze common words (excluding stop words)
+        if (entry.text) {
+          words.forEach(word => {
+            const cleanWord = word.toLowerCase().replace(/[^\w\s]|_/g, "");
+            if (cleanWord.length > 3 && !stopWords.includes(cleanWord)) {
+              commonWords[cleanWord] = (commonWords[cleanWord] || 0) + 1;
+            }
+          });
         }
       });
-    });
-    
-    // Get most common words
-    commonWordsList = Object.entries(commonWords)
-      .map(([word, count]) => ({ word, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-    
-    const averageWords = Math.round(totalWords / entries.length);
-    const dominantMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0][0];
-    const averageCharacters = Math.round(totalCharacters / entries.length);
-    
-    // Create personalized recommendations based on mood patterns
-    const recommendations = [];
-    
-    if (dominantMood === 'stress' || dominantMood === 'sad') {
-      recommendations.push("Consider incorporating stress-reduction techniques like deep breathing or meditation into your daily routine.");
-      recommendations.push("Try to schedule more activities that bring you joy and relaxation.");
-      recommendations.push("If feelings of sadness persist, consider speaking with a mental health professional for additional support.");
-    } else if (dominantMood === 'joy' || dominantMood === 'calm') {
-      recommendations.push("Continue your current practices that are contributing to your positive mood.");
-      recommendations.push("Consider documenting what specific activities correlate with your positive emotions.");
-      recommendations.push("Share activities that bring you joy with others who might benefit from them.");
-    } else {
-      recommendations.push("Try to identify patterns in activities that trigger different emotional responses.");
-      recommendations.push("Consider incorporating mindfulness practices to increase emotional awareness.");
-      recommendations.push("Set aside regular time for self-reflection to better understand your emotional patterns.");
-    }
-    
-    recommendations.push("Journal consistently to better track your mood patterns over time.");
-    
-    // Create a simple analysis
-    const analysis = {
-      summary: `Based on your ${entries.length} journal entries from ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}, your dominant mood was "${dominantMood}".`,
-      insights: [
-        `You journaled ${entries.length} times during this period.`,
-        `Your entries contained an average of ${averageWords} words (${averageCharacters} characters).`,
-        `Your longest entry contained ${longestEntry} words.`,
-        `Your mood distribution was: ${Object.entries(moodCounts).map(([mood, count]) => `${mood}: ${count} entries (${Math.round(count/entries.length*100)}%)`).join(', ')}.`,
-        `Common themes in your writing included: ${commonWordsList.map(item => `"${item.word}" (${item.count} times)`).join(', ')}.`
-      ],
-      recommendations: recommendations
-    };
-    
-    // Generate the content for the report
-    const content = `
+      
+      // Get most common words
+      commonWordsList = Object.entries(commonWords)
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      
+      const averageWords = Math.round(totalWords / entries.length);
+      const dominantMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'neutral';
+      const averageCharacters = Math.round(totalCharacters / entries.length);
+      
+      // Create personalized recommendations based on mood patterns
+      const recommendations = [];
+      
+      if (dominantMood === 'stress' || dominantMood === 'sad') {
+        recommendations.push("Consider incorporating stress-reduction techniques like deep breathing or meditation into your daily routine.");
+        recommendations.push("Try to schedule more activities that bring you joy and relaxation.");
+        recommendations.push("If feelings of sadness persist, consider speaking with a mental health professional for additional support.");
+      } else if (dominantMood === 'joy' || dominantMood === 'calm') {
+        recommendations.push("Continue your current practices that are contributing to your positive mood.");
+        recommendations.push("Consider documenting what specific activities correlate with your positive emotions.");
+        recommendations.push("Share activities that bring you joy with others who might benefit from them.");
+      } else {
+        recommendations.push("Try to identify patterns in activities that trigger different emotional responses.");
+        recommendations.push("Consider incorporating mindfulness practices to increase emotional awareness.");
+        recommendations.push("Set aside regular time for self-reflection to better understand your emotional patterns.");
+      }
+      
+      recommendations.push("Journal consistently to better track your mood patterns over time.");
+      
+      // Create a simple analysis
+      const analysis = {
+        summary: `Based on your ${entries.length} journal entries from ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}, your dominant mood was "${dominantMood}".`,
+        insights: [
+          `You journaled ${entries.length} times during this period.`,
+          `Your entries contained an average of ${averageWords} words (${averageCharacters} characters).`,
+          `Your longest entry contained ${longestEntry} words.`,
+          `Your mood distribution was: ${Object.entries(moodCounts).map(([mood, count]) => `${mood}: ${count} entries (${Math.round(count/entries.length*100)}%)`).join(', ')}.`,
+          `Common themes in your writing included: ${commonWordsList.length > 0 ? commonWordsList.map(item => `"${item.word}" (${item.count} times)`).join(', ') : "No common themes identified."}`
+        ],
+        recommendations: recommendations
+      };
+      
+      // Generate the content for the report
+      const content = `
 # MoodMemo AI Insights Report
 ## ${timeframe}
 
@@ -196,35 +216,50 @@ ${recommendations.map(rec => `- ${rec}`).join('\n')}
 *This report was generated based on your journal entries from ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}.*
 `;
 
-    console.log('Report generated successfully, saving to database');
+      console.log('Report generated successfully, saving to database');
 
-    // Save the report to the database
-    const { data: report, error: reportError } = await supabase
-      .from('ai_reports')
-      .insert({
-        user_id: userId,
-        timeframe,
-        content,
-        start_date: startDate,
-        end_date: endDate,
-      })
-      .select()
-      .single();
+      // Save the report to the database
+      try {
+        const { data: report, error: reportError } = await supabase
+          .from('ai_reports')
+          .insert({
+            user_id: userId,
+            timeframe,
+            content,
+            start_date: startDate,
+            end_date: endDate,
+          })
+          .select()
+          .single();
 
-    if (reportError) {
-      console.error('Error saving AI report:', reportError);
+        if (reportError) {
+          console.error('Error saving AI report:', reportError);
+          return new Response(
+            JSON.stringify({ error: 'Error saving AI report', details: reportError.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('Report saved successfully with ID:', report.id);
+
+        return new Response(
+          JSON.stringify({ report }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (err) {
+        console.error('Error saving report:', err);
+        return new Response(
+          JSON.stringify({ error: 'Error saving report', details: err.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (err) {
+      console.error('Error processing journal entries:', err);
       return new Response(
-        JSON.stringify({ error: 'Error saving AI report' }),
+        JSON.stringify({ error: 'Error processing journal entries', details: err.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('Report saved successfully with ID:', report.id);
-
-    return new Response(
-      JSON.stringify({ report }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error('Error in generate-ai-report function:', error);
     return new Response(
