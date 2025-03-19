@@ -1,23 +1,37 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangleIcon, BookOpenIcon, BarChart2Icon, WindIcon, ShieldIcon, LockIcon } from 'lucide-react';
+import { AlertTriangleIcon, BookOpenIcon, BarChart2Icon, WindIcon, ShieldIcon, LockIcon, LogInIcon } from 'lucide-react';
 import AuthScreen from '@/components/AuthScreen';
+import { useAuth } from '@/contexts/AuthContext';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const Index = () => {
   const { toast } = useToast();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated, signIn } = useAuth();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
+    // If user is already logged in, don't show onboarding
+    if (isAuthenticated) {
+      return;
+    }
+    
     const hasVisitedBefore = localStorage.getItem('hasVisitedBefore');
     if (!hasVisitedBefore) {
       setShowOnboarding(true);
     }
-  }, []);
+  }, [isAuthenticated]);
   
   const handleOnboardingComplete = () => {
     localStorage.setItem('hasVisitedBefore', 'true');
@@ -31,7 +45,7 @@ const Index = () => {
   const handleCrisisResourcesClick = () => {
     toast({
       title: "Crisis Resources",
-      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988.",
+      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 1-800-273-8255 (988).",
       variant: "destructive",
     });
   };
@@ -39,6 +53,45 @@ const Index = () => {
   const handlePremiumClick = () => {
     navigate('/settings');
   };
+  
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      await signIn(email, password);
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully signed in.",
+      });
+      navigate('/journal');
+    } catch (error: any) {
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // If the user is already authenticated, redirect them to journal
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/journal');
+    }
+  }, [isAuthenticated, navigate]);
   
   if (showOnboarding) {
     return <AuthScreen onComplete={handleOnboardingComplete} />;
@@ -177,6 +230,78 @@ const Index = () => {
           </motion.p>
         </motion.div>
         
+        {/* Add login section for returning users */}
+        <motion.div 
+          variants={itemVariants} 
+          className="glass-morphism mood-journal-card p-6 max-w-md mx-auto"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium">Returning User?</h2>
+            <LogInIcon className="h-5 w-5 text-primary" />
+          </div>
+          
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="bg-background/50"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link to="/auth" className="text-xs text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+              <Input 
+                id="password" 
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="bg-background/50"
+              />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+              
+              <Link to="/auth" className="flex-1">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                >
+                  Create Account
+                </Button>
+              </Link>
+            </div>
+          </form>
+        </motion.div>
+        
         <motion.div variants={itemVariants} className="flex flex-wrap gap-4 justify-center">
           <Link to="/journal">
             <motion.button
@@ -295,7 +420,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <AlertTriangleIcon className="h-5 w-5 text-destructive" />
               <span className="text-sm text-muted-foreground">
-                If you're in crisis, please call the National Suicide Prevention Lifeline at <strong>988</strong>
+                If you're in crisis, please call the National Suicide Prevention Lifeline at <strong>1-800-273-8255 (988)</strong>
               </span>
             </div>
           </div>
