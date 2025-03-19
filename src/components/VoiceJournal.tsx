@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   MicIcon,
   StopCircleIcon,
-  Waveform,
+  AudioWaveformIcon,
   PlayIcon,
   PauseIcon,
   FileTextIcon,
@@ -38,7 +37,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
   const { toast } = useToast();
   const { isPremium, user } = useAuth();
   
-  // Initialize voice recorder
   const {
     isRecording,
     recordingTime,
@@ -49,7 +47,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     resetRecording,
   } = useVoiceRecorder();
   
-  // Initialize speech-to-text
   const { 
     transcript, 
     isListening, 
@@ -57,14 +54,12 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     stopListening 
   } = useBrowserSpeechToText();
 
-  // Update the transcribed text when transcript changes
   useEffect(() => {
     if (transcript) {
       setTranscribedText(transcript);
     }
   }, [transcript]);
 
-  // Handle audio playback
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.onplay = () => setIsPlaying(true);
@@ -81,18 +76,15 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     };
   }, [audioUrl]);
 
-  // Format the recording time as MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Start recording and optionally start live transcription
   const handleStartRecording = async () => {
     try {
       await startRecording();
-      // If using browser speech recognition, start listening
       startListening();
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -104,11 +96,10 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     }
   };
 
-  // Stop recording and start transcription if needed
   const handleStopRecording = async () => {
     try {
       if (isRecording) {
-        stopListening(); // Stop speech recognition if active
+        stopListening();
         const blob = await stopRecording();
         
         if (!blob) {
@@ -120,7 +111,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
           return;
         }
         
-        // For premium users, use server-side transcription
         if (isPremium && user && recordingBlob) {
           handleServerTranscription(recordingBlob);
         }
@@ -135,14 +125,12 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     }
   };
 
-  // Handle server-side transcription for premium users
   const handleServerTranscription = async (blob: Blob) => {
     if (!isPremium || !user) return;
     
     setIsTranscribing(true);
     
     try {
-      // Upload audio to temporary storage for transcription
       const fileName = `temp-recordings/${user.id}/${Date.now()}.webm`;
       
       const { error: uploadError } = await supabase.storage
@@ -155,16 +143,14 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
         throw new Error(`Upload error: ${uploadError.message}`);
       }
       
-      // Get a temporary URL for the uploaded file
       const { data: urlData } = await supabase.storage
         .from('audio-uploads')
-        .createSignedUrl(fileName, 60); // URL valid for 60 seconds
+        .createSignedUrl(fileName, 60);
         
       if (!urlData?.signedUrl) {
         throw new Error('Failed to get signed URL for transcription');
       }
       
-      // Call the transcription edge function
       const { data: transcriptionData, error: transcriptionError } = await supabase.functions
         .invoke('transcribe-audio', {
           body: { audioUrl: urlData.signedUrl }
@@ -177,11 +163,9 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
       if (transcriptionData.text) {
         setTranscribedText(transcriptionData.text);
       } else {
-        // Fallback to browser transcription or empty text
         setTranscribedText(transcript || '');
       }
       
-      // Clean up the temporary file
       await supabase.storage
         .from('audio-uploads')
         .remove([fileName]);
@@ -194,14 +178,12 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
         variant: 'default',
       });
       
-      // Fallback to browser transcription
       setTranscribedText(transcript || '');
     } finally {
       setIsTranscribing(false);
     }
   };
 
-  // Handle play/pause toggle
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -212,7 +194,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     }
   };
 
-  // Reset the recording and transcription
   const handleReset = () => {
     resetRecording();
     setTranscribedText('');
@@ -220,12 +201,10 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     stopListening();
   };
 
-  // Save the journal entry
   const handleSave = () => {
     onComplete(audioUrl, transcribedText);
   };
 
-  // Enter edit mode
   const handleEdit = () => {
     setIsEditing(true);
     setTimeout(() => {
@@ -237,7 +216,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
 
   return (
     <div className="space-y-4 w-full max-w-2xl mx-auto">
-      {/* Show recording controls if no audio is recorded yet */}
       {!audioUrl ? (
         <div className="flex flex-col items-center justify-center gap-4">
           <div 
@@ -290,7 +268,7 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
           {isRecording && (
             <div className="flex items-center gap-3">
               <div className="text-red-500 font-medium">{formatTime(recordingTime)}</div>
-              <Waveform className="h-5 w-5 text-red-500 animate-pulse" />
+              <AudioWaveformIcon className="h-5 w-5 text-red-500 animate-pulse" />
             </div>
           )}
           
@@ -302,7 +280,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Audio player */}
           <div className="p-4 rounded-lg bg-secondary/20 flex items-center gap-3">
             <Button
               variant="outline"
@@ -332,7 +309,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
             </div>
           </div>
           
-          {/* Transcription UI */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="font-medium flex items-center gap-1.5">
@@ -399,7 +375,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
             )}
           </div>
           
-          {/* Action buttons */}
           <div className="flex justify-between pt-2">
             <Button
               variant="outline"
