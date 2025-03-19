@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +15,13 @@ import { supabase } from '@/integrations/supabase/client';
 import AnimatedTransition from '@/components/AnimatedTransition';
 
 const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'login';
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>(initialTab as 'login' | 'signup');
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -32,6 +36,14 @@ const Auth = () => {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate, from]);
+
+  // Update the active tab when the URL query parameter changes
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'signup' || tab === 'login') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,12 +137,12 @@ const Auth = () => {
             </motion.div>
             <h1 className="text-2xl font-bold mb-1">Welcome to MoodMemo</h1>
             <p className="text-muted-foreground">
-              Sign in or create an account to access your journal
+              {activeTab === 'login' ? 'Sign in to access your journal' : 'Create an account to get started'}
             </p>
           </div>
           
           <Tabs 
-            defaultValue="login" 
+            defaultValue={initialTab} 
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}
             className="w-full"

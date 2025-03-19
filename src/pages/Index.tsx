@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangleIcon, BookOpenIcon, BarChart2Icon, WindIcon, ShieldIcon, LockIcon, LogInIcon } from 'lucide-react';
+import { AlertTriangleIcon, BookOpenIcon, BarChart2Icon, WindIcon, ShieldIcon, LockIcon, LogInIcon, UserPlusIcon } from 'lucide-react';
 import AuthScreen from '@/components/AuthScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,7 @@ const Index = () => {
   const handleCrisisResourcesClick = () => {
     toast({
       title: "Crisis Resources",
-      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 1-800-273-8255 (988).",
+      description: "If you're in crisis, please call the National Suicide Prevention Lifeline at 988 (1-800-273-8255).",
       variant: "destructive",
     });
   };
@@ -230,7 +230,42 @@ const Index = () => {
           </motion.p>
         </motion.div>
         
-        {/* Add login section for returning users */}
+        {/* Login/Signup buttons section */}
+        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link to="/auth?tab=login">
+            <motion.button
+              className={cn(
+                "px-6 py-3 rounded-lg text-white font-medium",
+                "bg-primary shadow-lg shadow-primary/20 w-full sm:w-auto",
+                "hover:bg-primary/90 focus-ring flex items-center justify-center gap-2"
+              )}
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              <LogInIcon className="h-4 w-4" />
+              Sign In
+            </motion.button>
+          </Link>
+          
+          <Link to="/auth?tab=signup">
+            <motion.button
+              className={cn(
+                "px-6 py-3 rounded-lg font-medium w-full sm:w-auto",
+                "bg-secondary text-secondary-foreground",
+                "hover:bg-secondary/80 focus-ring flex items-center justify-center gap-2"
+              )}
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              <UserPlusIcon className="h-4 w-4" />
+              Create Account
+            </motion.button>
+          </Link>
+        </motion.div>
+        
+        {/* Returning users login form - moved down below the main buttons */}
         <motion.div 
           variants={itemVariants} 
           className="glass-morphism mood-journal-card p-6 max-w-md mx-auto"
@@ -289,7 +324,7 @@ const Index = () => {
                 )}
               </Button>
               
-              <Link to="/auth" className="flex-1">
+              <Link to="/auth?tab=signup" className="flex-1">
                 <Button 
                   type="button"
                   variant="outline"
@@ -301,7 +336,7 @@ const Index = () => {
             </div>
           </form>
         </motion.div>
-        
+
         <motion.div variants={itemVariants} className="flex flex-wrap gap-4 justify-center">
           <Link to="/journal">
             <motion.button
