@@ -1,0 +1,17 @@
+{
+  "title": "Insights",
+  "description": "Descubre patrones e insights de tus entradas de diario",
+  "aiInsights": "Insights de IA",
+  "aiReport": "Informe de Insights de IA",
+  "upgradeToPremium": "Actualizar a Premium",
+  "moodTrend": "Basado en tus entradas de diario, has estado experimentando más momentos de calma esta semana en comparación con la semana pasada.",
+  "tryBreathingExercise": "Prueba el nuevo ejercicio guiado de respiración",
+  "journalingPattern": "Observa que tu escritura es más consistente en las noches.",
+  "sleepQuality": "Mantener esta rutina ha demostrado mejorar la calidad del sueño y reducir la ansiedad del día siguiente.",
+  "reportDescription": "Obtén un análisis completo de tus entradas de diario, incluyendo patrones de estado de ánimo, insights emocionales y recomendaciones personalizadas.",
+  "loginRequired": "Por favor, inicia sesión para generar un informe de insights de IA.",
+  "premiumRequired": "Actualiza a Premium para acceder a informes de insights de IA.",
+  "reportGenerationStarted": "Generación de Informe Iniciada",
+  "reportGenerationDescription": "Tu informe de insights de IA está siendo generado. Estará listo en breve.",
+  "generateReport": "Generar Informe"
+} 

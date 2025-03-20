@@ -1,0 +1,17 @@
+{
+  "title": "Insights",
+  "description": "Discover patterns and insights from your journal entries",
+  "aiInsights": "AI Insights",
+  "aiReport": "AI Insights Report",
+  "upgradeToPremium": "Upgrade to Premium",
+  "moodTrend": "Based on your journal entries, you've been experiencing more calm moments this week compared to last week.",
+  "tryBreathingExercise": "Try the new guided breathing exercise",
+  "journalingPattern": "Notice your journaling is most consistent in the evenings.",
+  "sleepQuality": "Maintaining this routine has been shown to improve sleep quality and reduce next-day anxiety.",
+  "reportDescription": "Get a comprehensive analysis of your journal entries, including mood patterns, emotional insights, and personalized recommendations.",
+  "loginRequired": "Please log in to generate an AI insights report.",
+  "premiumRequired": "Upgrade to Premium to access AI insights reports.",
+  "reportGenerationStarted": "Report Generation Started",
+  "reportGenerationDescription": "Your AI insights report is being generated. This will be ready shortly.",
+  "generateReport": "Generate Report"
+} 

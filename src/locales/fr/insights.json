@@ -1,0 +1,17 @@
+{
+  "title": "Insights",
+  "description": "Découvrez des modèles et des insights dans vos entrées de journal",
+  "aiInsights": "Insights IA",
+  "aiReport": "Rapport d'Insights IA",
+  "upgradeToPremium": "Passer à Premium",
+  "moodTrend": "D'après vos entrées de journal, vous avez vécu plus de moments de calme cette semaine par rapport à la semaine dernière.",
+  "tryBreathingExercise": "Essayez le nouvel exercice guidé de respiration",
+  "journalingPattern": "Notez que votre écriture est plus régulière le soir.",
+  "sleepQuality": "Maintenir cette routine a démontré une amélioration de la qualité du sommeil et une réduction de l'anxiété du lendemain.",
+  "reportDescription": "Obtenez une analyse complète de vos entrées de journal, incluant les modèles d'humeur, les insights émotionnels et des recommandations personnalisées.",
+  "loginRequired": "Veuillez vous connecter pour générer un rapport d'insights IA.",
+  "premiumRequired": "Passez à Premium pour accéder aux rapports d'insights IA.",
+  "reportGenerationStarted": "Génération du Rapport Débutée",
+  "reportGenerationDescription": "Votre rapport d'insights IA est en cours de génération. Il sera prêt dans quelques instants.",
+  "generateReport": "Générer le Rapport"
+} 
