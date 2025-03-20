@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
@@ -26,7 +27,7 @@ export function useOfflineStorage() {
     const initDB = async () => {
       try {
         const db = await openIndexedDB();
-        await loadPendingEntries(db);
+        await loadPendingEntries(db as IDBDatabase);
       } catch (error) {
         console.error('Error initializing IndexedDB:', error);
         toast({
@@ -65,7 +66,7 @@ export function useOfflineStorage() {
   }, []);
 
   // Open IndexedDB connection
-  const openIndexedDB = useCallback(() => {
+  const openIndexedDB = useCallback((): Promise<IDBDatabase> => {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('MoodMemoDB', 1);
 
@@ -90,7 +91,7 @@ export function useOfflineStorage() {
 
   // Load pending entries from IndexedDB
   const loadPendingEntries = useCallback(async (db: IDBDatabase) => {
-    return new Promise((resolve, reject) => {
+    return new Promise<OfflineEntry[]>((resolve, reject) => {
       const transaction = db.transaction(['journalEntries'], 'readonly');
       const store = transaction.objectStore('journalEntries');
       const index = store.index('syncStatus');
@@ -115,7 +116,7 @@ export function useOfflineStorage() {
         syncStatus: 'pending',
       };
 
-      return new Promise((resolve, reject) => {
+      return new Promise<OfflineEntry>((resolve, reject) => {
         const transaction = db.transaction(['journalEntries'], 'readwrite');
         const store = transaction.objectStore('journalEntries');
         const request = store.add(newEntry);
@@ -214,7 +215,7 @@ export function useOfflineStorage() {
   const getAllEntries = useCallback(async () => {
     try {
       const db = await openIndexedDB();
-      return new Promise((resolve, reject) => {
+      return new Promise<OfflineEntry[]>((resolve, reject) => {
         const transaction = db.transaction(['journalEntries'], 'readonly');
         const store = transaction.objectStore('journalEntries');
         const request = store.getAll();
@@ -232,7 +233,7 @@ export function useOfflineStorage() {
   const deleteEntry = useCallback(async (id: string) => {
     try {
       const db = await openIndexedDB();
-      return new Promise((resolve, reject) => {
+      return new Promise<boolean>((resolve, reject) => {
         const transaction = db.transaction(['journalEntries'], 'readwrite');
         const store = transaction.objectStore('journalEntries');
         const request = store.delete(id);
@@ -259,4 +260,4 @@ export function useOfflineStorage() {
     deleteEntry,
     syncPendingEntries,
   };
-} 
+}

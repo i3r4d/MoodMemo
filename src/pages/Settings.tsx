@@ -27,10 +27,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import PremiumCheckout from '@/components/PremiumCheckout';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { useJournalStorage } from '@/hooks/useJournalStorage';
+import useJournalStorage from '@/hooks/useJournalStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme, Theme } from '@/contexts/ThemeContext';
 import DeviceConnections from '@/components/DeviceConnections';
 import HealthMetrics from '@/components/HealthMetrics';
 import ReminderManager from '@/components/ReminderManager';
@@ -205,10 +205,6 @@ const Settings = () => {
 
   const handleThemeChange = (value: Theme) => {
     setTheme(value);
-    toast({
-      title: 'Theme Updated',
-      description: `Theme changed to ${value} mode.`,
-    });
   };
 
   return (

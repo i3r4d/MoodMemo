@@ -22,11 +22,11 @@ import {
   X
 } from 'lucide-react';
 import MoodPicker from '@/components/MoodPicker';
-import { useJournalStorage, JournalEntry } from '@/hooks/useJournalStorage';
+import { useJournalStorage, JournalEntry, MoodType, Prompt } from '@/hooks/useJournalStorage';
 import { format, isToday, isYesterday } from 'date-fns';
 import TextJournal from '@/components/TextJournal';
 import VoiceJournal from '@/components/VoiceJournal';
-import { MoodType, analyzeMood, getMoodColor, getMoodDescription } from '@/utils/moodAnalysis';
+import { analyzeMood, getMoodColor, getMoodDescription } from '@/utils/moodAnalysis';
 import { useAuth } from '@/contexts/AuthContext';
 import ReportGenerator from '@/components/ReportGenerator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -39,7 +39,6 @@ import { Badge } from '@/components/ui/badge';
 import GuidedPrompts from '@/components/GuidedPrompts';
 import SentimentAnalysis from '@/components/SentimentAnalysis';
 import { supabase } from '@/lib/supabase';
-import { Prompt } from '@/types/journal';
 
 type JournalMode = 'list' | 'create-text' | 'create-voice';
 
@@ -194,6 +193,7 @@ const Journal = () => {
         audioUrl,
         timestamp: new Date().toISOString(),
         mood: detectedMood,
+        tags: [],
         formatting,
       });
       

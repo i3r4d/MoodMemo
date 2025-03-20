@@ -18,7 +18,7 @@ interface WritingPatternsProps {
 }
 
 interface PatternData {
-  hour: number;
+  hour: string; // Changed to string to match the format returned from processing
   count: number;
   average_sentiment: number;
 }
@@ -65,7 +65,7 @@ export function WritingPatterns({ dateRange }: WritingPatternsProps) {
       });
       
       // Transform to array format
-      const formattedData = Object.entries(hourData).map(([hour, data]) => ({
+      const formattedData: PatternData[] = Object.entries(hourData).map(([hour, data]) => ({
         hour: `${hour}:00`,
         count: data.count,
         average_sentiment: data.count > 0 ? data.sentiment_total / data.count : 0
@@ -125,7 +125,7 @@ export function WritingPatterns({ dateRange }: WritingPatternsProps) {
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
                 const sentimentValue = typeof payload[1]?.value === 'number' 
-                  ? payload[1].value.toFixed(2) 
+                  ? Number(payload[1].value).toFixed(2) 
                   : payload[1]?.value || '0';
                   
                 return (

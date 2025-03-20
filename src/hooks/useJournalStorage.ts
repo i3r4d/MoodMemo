@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -23,7 +24,23 @@ interface SupabaseJournalEntry {
   encrypted?: boolean;
 }
 
-export const useJournalStorage = () => {
+// Convert Supabase data format to our app's JournalEntry format
+const mapSupabaseToJournalEntry = (entry: SupabaseJournalEntry): JournalEntry => {
+  return {
+    id: entry.id,
+    text: entry.text,
+    audioUrl: entry.audio_url,
+    timestamp: entry.timestamp,
+    mood: entry.mood,
+    moodIntensity: entry.mood_intensity,
+    tags: entry.tags || [],
+    template: entry.template,
+    userId: entry.user_id,
+    user_id: entry.user_id
+  };
+};
+
+const useJournalStorage = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [localStorageOnly, setLocalStorageOnly] = useState(() => {
@@ -77,18 +94,7 @@ export const useJournalStorage = () => {
         return [];
       }
       
-      return (data || []).map((entry: SupabaseJournalEntry): JournalEntry => ({
-        id: entry.id,
-        text: entry.text,
-        audioUrl: entry.audio_url,
-        timestamp: entry.timestamp,
-        mood: entry.mood,
-        moodIntensity: entry.mood_intensity,
-        tags: entry.tags || [],
-        template: entry.template,
-        userId: entry.user_id,
-        user_id: entry.user_id
-      }));
+      return (data || []).map(mapSupabaseToJournalEntry);
     } catch (error) {
       console.error('Error in fetchCloudEntries:', error);
       return [];
@@ -168,7 +174,7 @@ export const useJournalStorage = () => {
             timestamp: entry.timestamp,
             mood: entry.mood,
             mood_intensity: entry.moodIntensity,
-            tags: entry.tags,
+            tags: entry.tags || [],
             template: entry.template
           })
           .select()
@@ -184,19 +190,7 @@ export const useJournalStorage = () => {
           return null;
         }
         
-        const newEntry: JournalEntry = {
-          id: data.id,
-          text: entry.text,
-          audioUrl: entry.audioUrl,
-          timestamp: entry.timestamp,
-          mood: entry.mood,
-          moodIntensity: entry.moodIntensity,
-          tags: entry.tags || [],
-          template: entry.template,
-          userId: user.id,
-          user_id: user.id
-        };
-        
+        const newEntry = mapSupabaseToJournalEntry(data);
         setEntries(prev => [newEntry, ...prev]);
         return newEntry.id;
       } else {
@@ -265,19 +259,7 @@ export const useJournalStorage = () => {
         
         if (error) throw error;
         
-        const updatedEntry: JournalEntry = {
-          id: data.id,
-          text: data.text,
-          audioUrl: data.audio_url,
-          timestamp: data.timestamp,
-          mood: data.mood,
-          moodIntensity: data.mood_intensity,
-          tags: data.tags || [],
-          template: data.template,
-          userId: data.user_id,
-          user_id: data.user_id
-        };
-        
+        const updatedEntry = mapSupabaseToJournalEntry(data);
         setEntries(prev => prev.map(entry => entry.id === id ? updatedEntry : entry));
         return updatedEntry;
       } else {
@@ -291,87 +273,16 @@ export const useJournalStorage = () => {
     }
   }, [entries, user, isPremium, localStorageOnly]);
 
-  const getEntriesByDateRange = useCallback(async (startDate: Date, endDate: Date) => {
-    try {
-      if (user && isPremium && !localStorageOnly) {
-        const { data, error } = await supabase
-          .from('journal_entries')
-          .select('*')
-          .eq('user_id', user.id)
-          .gte('timestamp', startDate.toISOString())
-          .lte('timestamp', endDate.toISOString())
-          .order('timestamp', { ascending: true });
-
-        if (error) throw error;
-        
-        return (data || []).map((entry: SupabaseJournalEntry): JournalEntry => ({
-          id: entry.id,
-          text: entry.text,
-          audioUrl: entry.audio_url,
-          timestamp: entry.timestamp,
-          mood: entry.mood,
-          moodIntensity: entry.mood_intensity,
-          tags: entry.tags || [],
-          template: entry.template,
-          userId: entry.user_id,
-          user_id: entry.user_id
-        }));
-      } else {
-        return entries.filter(entry => {
-          const entryDate = new Date(entry.timestamp);
-          return entryDate >= startDate && entryDate <= endDate;
-        }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      }
-    } catch (error) {
-      console.error('Error fetching entries by date range:', error);
-      throw error;
-    }
-  }, [entries, user, isPremium, localStorageOnly]);
-
-  const getEntriesByTag = useCallback(async (tag: string) => {
-    try {
-      if (user && isPremium && !localStorageOnly) {
-        const { data, error } = await supabase
-          .from('journal_entries')
-          .select('*')
-          .eq('user_id', user.id)
-          .contains('tags', [tag])
-          .order('timestamp', { ascending: false });
-
-        if (error) throw error;
-        
-        return (data || []).map((entry: SupabaseJournalEntry): JournalEntry => ({
-          id: entry.id,
-          text: entry.text,
-          audioUrl: entry.audio_url,
-          timestamp: entry.timestamp,
-          mood: entry.mood,
-          moodIntensity: entry.mood_intensity,
-          tags: entry.tags || [],
-          template: entry.template,
-          userId: entry.user_id,
-          user_id: entry.user_id
-        }));
-      } else {
-        return entries.filter(entry => entry.tags?.includes(tag))
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      }
-    } catch (error) {
-      console.error('Error fetching entries by tag:', error);
-      throw error;
-    }
-  }, [entries, user, isPremium, localStorageOnly]);
-
   return {
     entries,
     isLoading,
     addEntry,
     deleteEntry,
     updateEntry,
-    getEntriesByDateRange,
-    getEntriesByTag,
+    isPremiumStorage: !!(user && isPremium && !localStorageOnly),
     localStorageOnly,
-    toggleStoragePreference,
-    isPremiumStorage: !!(user && isPremium && !localStorageOnly)
+    toggleStoragePreference
   };
 };
+
+export default useJournalStorage;
