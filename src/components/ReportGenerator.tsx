@@ -115,6 +115,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           throw new Error('Failed to check available functions');
         }
 
+        // Add project reference to the function call
         const { data, error: functionError } = await supabase.functions.invoke('generate-ai-report', {
           body: {
             userId: user.id,
@@ -124,6 +125,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           },
           headers: {
             'Content-Type': 'application/json',
+            'X-Project-Reference': 'dxolkbecfzspmoiszyvg'
           },
         });
         
@@ -151,6 +153,13 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
             toast({
               title: "Session Expired",
               description: "Your session has expired. Please log in again.",
+              variant: "destructive",
+            });
+          } else if (functionError.message.includes('Failed to connect')) {
+            setError("Unable to connect to the report service. Please check your internet connection and try again.");
+            toast({
+              title: "Connection Error",
+              description: "Unable to connect to the report service. Please check your internet connection and try again.",
               variant: "destructive",
             });
           } else {
