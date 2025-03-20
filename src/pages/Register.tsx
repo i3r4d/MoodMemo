@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,15 +12,23 @@ const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const { isAuthenticated, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !name) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -40,14 +48,12 @@ const Register: React.FC = () => {
     
     setIsLoading(true);
     try {
-      // For now, we'll just simulate a register
-      setTimeout(() => {
-        toast({
-          title: "Success",
-          description: "Your account has been created successfully",
-        });
-        navigate('/login');
-      }, 1000);
+      await signUp(email, password, name);
+      toast({
+        title: "Success",
+        description: "Your account has been created successfully",
+      });
+      navigate('/');
     } catch (error) {
       console.error('Registration error:', error);
       toast({
@@ -60,6 +66,11 @@ const Register: React.FC = () => {
     }
   };
 
+  // If already authenticated, don't render the register form
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-md">
@@ -71,6 +82,17 @@ const Register: React.FC = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

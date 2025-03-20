@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,16 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated, signIn } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,14 +37,12 @@ const Login: React.FC = () => {
     
     setIsLoading(true);
     try {
-      // For now, we'll just simulate a login
-      setTimeout(() => {
-        toast({
-          title: "Success",
-          description: "You've been logged in successfully",
-        });
-        navigate('/');
-      }, 1000);
+      await signIn(email, password);
+      toast({
+        title: "Success",
+        description: "You've been logged in successfully",
+      });
+      navigate('/');
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -49,6 +54,11 @@ const Login: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // If already authenticated, don't render the login form
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">

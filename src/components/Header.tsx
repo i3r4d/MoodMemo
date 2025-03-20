@@ -11,12 +11,12 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { UserIcon, LogOutIcon, SettingsIcon, HomeIcon } from 'lucide-react';
+import { UserIcon, LogOutIcon, SettingsIcon, HomeIcon, BookIcon, PlusIcon, BrainCircuitIcon } from 'lucide-react';
 
 const Header: React.FC = () => {
   const location = useLocation();
   const path = location.pathname;
-  const { isAuthenticated, signOut } = useAuth();
+  const { isAuthenticated, signOut, user } = useAuth();
   const navigate = useNavigate();
   
   const getPageTitle = () => {
@@ -25,7 +25,7 @@ const Header: React.FC = () => {
         return 'Home';
       case '/journal':
         return 'Journal';
-      case '/dashboard':
+      case '/insights':
         return 'Insights';
       case '/exercises':
         return 'Exercises';
@@ -64,7 +64,7 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {path === '/journal' && (
+          {isAuthenticated && path === '/journal' && (
             <motion.button
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -75,10 +75,9 @@ const Header: React.FC = () => {
                 "hover:bg-primary/90 focus-ring"
               )}
               aria-label="New Journal Entry"
+              onClick={() => navigate('/journal')}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <path d="M12 5v14M5 12h14"></path>
-              </svg>
+              <PlusIcon className="h-5 w-5" />
             </motion.button>
           )}
           
@@ -118,24 +117,23 @@ const Header: React.FC = () => {
           )}
           
           {!isAuthenticated && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className={cn(
-                "rounded-full p-2",
-                "bg-secondary text-secondary-foreground",
-                "hover:bg-secondary/80 focus-ring"
-              )}
-              aria-label="Help"
-              onClick={() => navigate('/auth')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                <path d="M12 17h.01"></path>
-              </svg>
-            </motion.button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/login')}
+                className="text-sm"
+              >
+                Sign In
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => navigate('/register')}
+                className="text-sm"
+              >
+                Sign Up
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -163,5 +161,8 @@ const Logo: React.FC = () => (
     <span className="font-medium">MoodMemo</span>
   </Link>
 );
+
+// Import Button component
+import { Button } from "@/components/ui/button";
 
 export default Header;

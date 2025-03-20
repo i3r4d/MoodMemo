@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils';
 import { 
   HomeIcon, 
   BookIcon, 
-  LayoutDashboardIcon, 
   SettingsIcon, 
   DumbbellIcon,
   BrainCircuitIcon
@@ -37,12 +36,6 @@ const Layout = ({ children }: LayoutProps) => {
       active: location.pathname === '/journal'
     },
     {
-      href: '/dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboardIcon,
-      active: location.pathname === '/dashboard'
-    },
-    {
       href: '/insights',
       label: 'Insights',
       icon: BrainCircuitIcon,
@@ -67,7 +60,7 @@ const Layout = ({ children }: LayoutProps) => {
       <Header />
       <div className="flex-1 container mx-auto max-w-7xl p-4">
         {isAuthenticated && (
-          <div className="mb-8 hidden md:flex justify-center">
+          <div className="mb-8 md:flex justify-center">
             <div className="flex items-center space-x-4 bg-background/90 backdrop-blur-sm rounded-full border px-4 py-2">
               {routes.map((route) => (
                 <button

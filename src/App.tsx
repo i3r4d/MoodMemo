@@ -7,7 +7,6 @@ import { PremiumProvider } from '@/contexts/PremiumProvider';
 import Layout from '@/components/Layout';
 import Index from '@/pages/Index';
 import Journal from '@/pages/Journal';
-import Dashboard from '@/pages/Dashboard';
 import Settings from '@/pages/Settings';
 import Exercises from '@/pages/Exercises';
 import Insights from '@/pages/Insights';
@@ -42,16 +41,6 @@ const App: React.FC = () => {
                     <ProtectedRoute>
                       <Layout>
                         <Journal />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Dashboard />
                       </Layout>
                     </ProtectedRoute>
                   }

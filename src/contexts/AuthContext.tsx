@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(true); // Changed to true for testing purposes
+  const [isPremium, setIsPremium] = useState(true); // Keep premium for testing
 
   useEffect(() => {
     // Check if there's a user in localStorage (demo purposes)

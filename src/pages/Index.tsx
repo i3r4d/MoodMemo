@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isPremium } = useAuth();
+  const { user, isAuthenticated, isPremium } = useAuth();
 
   return (
     <AnimatedTransition keyValue="home">
@@ -26,7 +25,7 @@ const Index = () => {
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
               Your personal space for emotional well-being, self-reflection, and growth.
             </p>
-            {user ? (
+            {isAuthenticated ? (
               <Button
                 size="lg"
                 onClick={() => navigate('/journal')}
@@ -286,7 +285,7 @@ const Index = () => {
           </div>
         </section>
 
-        {!user && (
+        {!isAuthenticated && (
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
