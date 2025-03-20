@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ExerciseCard, { Exercise } from '@/components/ExerciseCard';
@@ -6,9 +5,11 @@ import AnimatedTransition from '@/components/AnimatedTransition';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { AlertTriangleIcon, LockIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Exercises = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { isPremium } = useAuth();
   
   // Mock exercises data
   const exercises: Exercise[] = [
@@ -107,7 +108,7 @@ const Exercises = () => {
     : exercises;
     
   const handleExerciseClick = (exercise: Exercise) => {
-    if (exercise.isPremium) {
+    if (exercise.isPremium && !isPremium) {
       toast({
         title: "Premium Exercise",
         description: "This exercise is available with the premium subscription.",
@@ -122,10 +123,12 @@ const Exercises = () => {
   };
   
   const handlePremiumClick = () => {
-    toast({
-      title: "Premium Subscription",
-      description: "Upgrade to premium for $9.99/month to access all exercises and remove ads.",
-    });
+    if (!isPremium) {
+      toast({
+        title: "Premium Subscription",
+        description: "Upgrade to premium for $9.99/month to access all exercises and remove ads.",
+      });
+    }
   };
   
   const handleCrisisResourcesClick = () => {
@@ -163,18 +166,22 @@ const Exercises = () => {
                 <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">
                   {freeExercisesCount} Free
                 </span>
-                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1">
-                  <LockIcon className="h-3 w-3" />
-                  {premiumExercisesCount} Premium
-                </span>
+                {!isPremium && (
+                  <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1">
+                    <LockIcon className="h-3 w-3" />
+                    {premiumExercisesCount} Premium
+                  </span>
+                )}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Guided meditations and exercises to improve mental wellbeing
               </p>
             </div>
-            <Button onClick={handlePremiumClick} className="bg-gradient-to-r from-primary to-primary/80">
-              Unlock All Exercises
-            </Button>
+            {!isPremium && (
+              <Button onClick={handlePremiumClick} className="bg-gradient-to-r from-primary to-primary/80">
+                Unlock All Exercises
+              </Button>
+            )}
           </div>
         </div>
         
@@ -212,9 +219,11 @@ const Exercises = () => {
         )}
         
         {/* Free version ad placeholder */}
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center text-sm text-gray-500 mt-10">
-          <p>Free version supported by ethical ads. <span className="text-primary font-medium">Go premium to remove.</span></p>
-        </div>
+        {!isPremium && (
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center text-sm text-gray-500 mt-10">
+            <p>Free version supported by ethical ads. <span className="text-primary font-medium">Go premium to remove.</span></p>
+          </div>
+        )}
       </div>
     </AnimatedTransition>
   );

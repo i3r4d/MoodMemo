@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -85,13 +84,6 @@ const Index = () => {
       setIsLoading(false);
     }
   };
-  
-  // If the user is already authenticated, redirect them to journal
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/journal');
-    }
-  }, [isAuthenticated, navigate]);
   
   if (showOnboarding) {
     return <AuthScreen onComplete={handleOnboardingComplete} />;
