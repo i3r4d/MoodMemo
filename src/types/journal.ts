@@ -35,4 +35,7 @@ export interface Prompt {
   difficulty: 'easy' | 'medium' | 'hard';
   mood_boost: number;
   user_rating?: number;
+  prompt_text?: string;
+  description?: string;
+  follow_up_questions?: string[];
 }

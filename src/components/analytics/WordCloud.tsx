@@ -1,10 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
-import ReactWordcloud from 'react-wordcloud';
-import 'tippy.js/dist/tippy.css';
-import 'tippy.js/animations/scale.css';
 
 interface WordCloudProps {
   dateRange: { start: Date; end: Date } | null;
@@ -29,18 +27,37 @@ export function WordCloud({ dateRange }: WordCloudProps) {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .rpc('get_word_cloud_data', {
-          start_date: dateRange?.start.toISOString(),
-          end_date: dateRange?.end.toISOString(),
-        });
+      // Get journal entries and process the words
+      const { data: entries, error } = await supabase
+        .from('journal_entries')
+        .select('text')
+        .gte('timestamp', dateRange?.start.toISOString() || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .lte('timestamp', dateRange?.end.toISOString() || new Date().toISOString());
 
       if (error) throw error;
 
-      const wordData: WordData[] = data.map((word: any) => ({
-        text: word.word,
-        value: word.count,
-      }));
+      // Process text to get word frequencies
+      const wordCount: Record<string, number> = {};
+      const stopWords = ['the', 'and', 'a', 'to', 'of', 'in', 'i', 'is', 'that', 'it', 'for', 'was', 'on', 'with', 'my'];
+      
+      entries.forEach((entry: any) => {
+        if (!entry.text) return;
+        
+        const words = entry.text.toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .split(/\s+/)
+          .filter((word: string) => word.length > 2 && !stopWords.includes(word));
+          
+        words.forEach((word: string) => {
+          wordCount[word] = (wordCount[word] || 0) + 1;
+        });
+      });
+      
+      // Convert to array and sort by frequency
+      const wordData = Object.entries(wordCount)
+        .map(([text, value]) => ({ text, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 50); // Get top 50 words
 
       setWords(wordData);
     } catch (error) {
@@ -72,20 +89,24 @@ export function WordCloud({ dateRange }: WordCloudProps) {
   }
 
   return (
-    <div className="w-full h-full">
-      <ReactWordcloud
-        words={words}
-        options={{
-          rotations: 2,
-          rotationAngles: [0, 90],
-          fontSizes: [12, 60],
-          padding: 5,
-          fontFamily: 'Inter, sans-serif',
-          colors: ['#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af'],
-          enableTooltip: true,
-          deterministic: true,
-        }}
-      />
+    <div className="w-full h-full flex flex-wrap justify-center items-center p-4">
+      {words.map((word, index) => (
+        <div
+          key={word.text}
+          className="m-2 p-2 rounded-md"
+          style={{
+            fontSize: `${Math.max(1, Math.min(5, word.value / 2))}rem`,
+            opacity: 0.6 + (word.value / (words[0].value * 2)),
+            color: index % 5 === 0 ? '#3b82f6' : 
+                   index % 5 === 1 ? '#10b981' : 
+                   index % 5 === 2 ? '#6366f1' : 
+                   index % 5 === 3 ? '#f59e0b' : 
+                   '#ef4444',
+          }}
+        >
+          {word.text}
+        </div>
+      ))}
     </div>
   );
-} 
+}

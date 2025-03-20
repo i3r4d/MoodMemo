@@ -1,24 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, StarHalf } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface Prompt {
-  id: string;
-  category: string;
-  title: string;
-  description: string;
-  prompt_text: string;
-  follow_up_questions: string[];
-  relevance_score: number;
-}
+import { Prompt, MoodType } from '@/types/journal';
 
 interface GuidedPromptsProps {
-  currentMood: 'happy' | 'neutral' | 'sad';
+  currentMood: MoodType | null;
   onSelectPrompt: (prompt: Prompt) => void;
 }
 
@@ -35,15 +27,20 @@ const GuidedPrompts: React.FC<GuidedPromptsProps> = ({ currentMood, onSelectProm
   const fetchPrompts = async () => {
     try {
       setLoading(true);
+      
+      // Simulate fetching personalized prompts - replace with actual function when available
       const { data, error } = await supabase
-        .rpc('get_personalized_prompts', {
-          p_user_id: user?.id,
-          p_mood: currentMood,
-          p_limit: 5
-        });
+        .from('journal_prompts')
+        .select('*')
+        .limit(5);
 
       if (error) throw error;
-      setPrompts(data || []);
+      
+      if (data) {
+        setPrompts(data as Prompt[]);
+      } else {
+        setPrompts([]);
+      }
     } catch (error) {
       console.error('Error fetching prompts:', error);
       toast({
@@ -58,11 +55,13 @@ const GuidedPrompts: React.FC<GuidedPromptsProps> = ({ currentMood, onSelectProm
 
   const handleRating = async (promptId: string, rating: number) => {
     try {
+      // Simulate updating prompt preferences - replace with actual function when available
       const { error } = await supabase
-        .rpc('update_prompt_preferences', {
-          p_user_id: user?.id,
-          p_prompt_id: promptId,
-          p_rating: rating
+        .from('user_prompt_ratings')
+        .upsert({ 
+          user_id: user?.id,
+          prompt_id: promptId,
+          rating: rating
         });
 
       if (error) throw error;
@@ -123,8 +122,8 @@ const GuidedPrompts: React.FC<GuidedPromptsProps> = ({ currentMood, onSelectProm
                   <h3 className="font-semibold">{prompt.title}</h3>
                   <Badge variant="secondary">{prompt.category}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{prompt.description}</p>
-                <p className="font-medium">{prompt.prompt_text}</p>
+                <p className="text-sm text-muted-foreground">{prompt.description || prompt.content}</p>
+                <p className="font-medium">{prompt.prompt_text || prompt.content}</p>
               </div>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((rating) => (
@@ -162,4 +161,4 @@ const GuidedPrompts: React.FC<GuidedPromptsProps> = ({ currentMood, onSelectProm
   );
 };
 
-export default GuidedPrompts; 
+export default GuidedPrompts;

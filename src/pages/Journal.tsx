@@ -39,6 +39,7 @@ import { Badge } from '@/components/ui/badge';
 import GuidedPrompts from '@/components/GuidedPrompts';
 import SentimentAnalysis from '@/components/SentimentAnalysis';
 import { supabase } from '@/lib/supabase';
+import { Prompt } from '@/types/journal';
 
 type JournalMode = 'list' | 'create-text' | 'create-voice';
 
@@ -47,7 +48,7 @@ const Journal = () => {
   const [activeTab, setActiveTab] = useState<'recent' | 'moods'>('recent');
   const [submitting, setSubmitting] = useState(false);
   const [text, setText] = useState('');
-  const [mood, setMood] = useState<MoodType>(null);
+  const [mood, setMood] = useState<MoodType | null>(null);
   const { toast } = useToast();
   const { entries, isLoading, addEntry, deleteEntry } = useJournalStorage();
   const { isPremium } = useAuth();
@@ -67,7 +68,6 @@ const Journal = () => {
   } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Reset form when changing to create mode
   useEffect(() => {
     if (mode === 'create-text' || mode === 'create-voice') {
       setText('');
@@ -113,7 +113,6 @@ const Journal = () => {
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    // Add the suggestion as a new journal entry
     setText(suggestion);
     toast({
       title: 'Suggestion Applied',
@@ -134,13 +133,10 @@ const Journal = () => {
     setSubmitting(true);
     
     try {
-      // Analyze sentiment before saving
       await analyzeSentiment(text);
       
-      // Analyze mood if not manually selected
       const detectedMood = mood || await analyzeMood(text);
       
-      // Add entry to journal storage with enhanced data
       await addEntry({
         text,
         audioUrl: null,
@@ -158,7 +154,6 @@ const Journal = () => {
         description: "Your journal entry has been saved successfully.",
       });
       
-      // Reset form
       setText('');
       setMood(null);
       setMoodIntensity(5);
@@ -192,10 +187,8 @@ const Journal = () => {
         return;
       }
       
-      // Analyze mood
       const detectedMood = await analyzeMood(text);
       
-      // Add entry to journal storage
       await addEntry({
         text,
         audioUrl,
@@ -209,7 +202,6 @@ const Journal = () => {
         description: "Your voice journal entry has been saved successfully.",
       });
       
-      // Return to list view
       setMode('list');
     } catch (error) {
       console.error('Error creating voice journal entry:', error);
@@ -287,7 +279,7 @@ const Journal = () => {
   };
 
   const handlePromptSelect = (prompt: Prompt) => {
-    setText(prompt.prompt_text);
+    setText(prompt.prompt_text || prompt.content);
     setShowPrompts(false);
     toast({
       title: 'Prompt Selected',
@@ -347,10 +339,10 @@ const Journal = () => {
             <label className="text-sm font-medium">Mood</label>
             <div className="flex gap-2">
               <Button
-                variant={mood === 'happy' ? 'default' : 'outline'}
-                onClick={() => setMood('happy')}
+                variant={mood === 'joy' ? 'default' : 'outline'}
+                onClick={() => setMood('joy')}
               >
-                😊 Happy
+                😊 Joyful
               </Button>
               <Button
                 variant={mood === 'neutral' ? 'default' : 'outline'}
@@ -367,7 +359,6 @@ const Journal = () => {
             </div>
           </div>
 
-          {/* Rich Text Editor */}
           <div className="space-y-2">
             <div className="flex items-center gap-1 border-b pb-2">
               <ToggleGroup type="multiple" size="sm">
@@ -398,7 +389,6 @@ const Journal = () => {
             />
           </div>
           
-          {/* Add Sentiment Analysis after the text editor */}
           {sentimentAnalysis && (
             <SentimentAnalysis
               {...sentimentAnalysis}
@@ -406,7 +396,6 @@ const Journal = () => {
             />
           )}
           
-          {/* Mood Selection with Intensity */}
           <div className="space-y-4">
             <div>
               <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
@@ -434,7 +423,6 @@ const Journal = () => {
             )}
           </div>
 
-          {/* Tags */}
           <div className="space-y-2">
             <Label>Tags</Label>
             <div className="flex flex-wrap gap-2">
@@ -520,7 +508,6 @@ const Journal = () => {
           </div>
         </div>
 
-        {/* Quick Entry Card */}
         <div className="glass-morphism mood-journal-card p-4">
           <div className="flex items-center gap-4">
             <div className="flex-grow">

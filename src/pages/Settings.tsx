@@ -34,6 +34,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import DeviceConnections from '@/components/DeviceConnections';
 import HealthMetrics from '@/components/HealthMetrics';
 import ReminderManager from '@/components/ReminderManager';
+import { Separator } from "@/components/ui/separator";
 
 const Settings = () => {
   const { localStorageOnly, toggleStoragePreference } = useJournalStorage();
@@ -50,7 +51,6 @@ const Settings = () => {
   const [notifications, setNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
   
-  // Check for payment success in URL parameters
   useEffect(() => {
     const paymentSuccess = searchParams.get('payment_success');
     if (paymentSuccess === 'true') {
@@ -58,7 +58,6 @@ const Settings = () => {
         title: "Premium Subscription Activated",
         description: "Thank you for subscribing! Your premium features are now active.",
       });
-      // Remove the query parameter
       navigate('/settings', { replace: true });
     }
   }, [searchParams, navigate, toast]);
@@ -68,7 +67,6 @@ const Settings = () => {
     
     try {
       if (isPremium && !localStorageOnly) {
-        // For premium users, clear entries from database
         const { error } = await supabase
           .from('journal_entries')
           .delete()
@@ -77,7 +75,6 @@ const Settings = () => {
         if (error) throw error;
       }
       
-      // Clear local storage entries
       localStorage.removeItem('moodmemo_journal_entries');
       
       toast({
@@ -100,7 +97,6 @@ const Settings = () => {
   
   const handleEnableBiometric = () => {
     if (window.PublicKeyCredential) {
-      // Check if device supports WebAuthn
       if (navigator.credentials && 'create' in navigator.credentials) {
         toast({
           title: "Biometric Authentication",
@@ -133,9 +129,7 @@ const Settings = () => {
       return;
     }
     
-    // Store PIN code in secure storage
     try {
-      // Hash the PIN before storing (in a real app)
       localStorage.setItem('moodmemo_pin', btoa(pinCode));
       setPinEnabled(true);
       toast({
@@ -170,7 +164,6 @@ const Settings = () => {
       return;
     }
     
-    // This would be connected to real data in a production app
     const mockData = {
       entries: localStorage.getItem('moodmemo_journal_entries') || '[]',
       timestamp: new Date().toISOString(),
@@ -210,11 +203,11 @@ const Settings = () => {
     }
   };
 
-  const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
+  const handleThemeChange = (value: Theme) => {
+    setTheme(value);
     toast({
       title: 'Theme Updated',
-      description: `Theme changed to ${newTheme} mode.`,
+      description: `Theme changed to ${value} mode.`,
     });
   };
 
@@ -336,7 +329,6 @@ const Settings = () => {
         </Tabs>
       </div>
       
-      {/* Premium Checkout Dialog */}
       <PremiumCheckout 
         isOpen={isPremiumDialogOpen} 
         onClose={() => setIsPremiumDialogOpen(false)} 

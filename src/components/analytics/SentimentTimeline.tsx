@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
@@ -36,18 +37,32 @@ export function SentimentTimeline({ dateRange }: SentimentTimelineProps) {
     try {
       setLoading(true);
 
-      const { data: sentimentData, error } = await supabase
-        .rpc('get_sentiment_timeline', {
-          start_date: dateRange?.start.toISOString(),
-          end_date: dateRange?.end.toISOString(),
-        });
+      // For now, using a query that doesn't require an RPC function
+      const { data: journalEntries, error } = await supabase
+        .from('journal_entries')
+        .select('timestamp, sentiment_score')
+        .gte('timestamp', dateRange?.start.toISOString() || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .lte('timestamp', dateRange?.end.toISOString() || new Date().toISOString());
 
       if (error) throw error;
 
-      const formattedData = sentimentData.map((item: any) => ({
-        date: new Date(item.date).toLocaleDateString(),
-        sentiment: item.sentiment,
-        count: item.count,
+      // Process the data to group by date
+      const dataByDate = journalEntries.reduce((acc: Record<string, {total: number, count: number}>, entry: any) => {
+        const date = new Date(entry.timestamp).toLocaleDateString();
+        if (!acc[date]) {
+          acc[date] = { total: 0, count: 0 };
+        }
+        if (entry.sentiment_score !== null) {
+          acc[date].total += entry.sentiment_score;
+          acc[date].count += 1;
+        }
+        return acc;
+      }, {});
+
+      const formattedData = Object.entries(dataByDate).map(([date, values]) => ({
+        date,
+        sentiment: values.count > 0 ? values.total / values.count : 0,
+        count: values.count,
       }));
 
       setData(formattedData);
@@ -104,11 +119,15 @@ export function SentimentTimeline({ dateRange }: SentimentTimelineProps) {
           <Tooltip
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
+                const sentimentValue = typeof payload[0].value === 'number' 
+                  ? payload[0].value.toFixed(2) 
+                  : payload[0].value;
+                  
                 return (
                   <div className="bg-background border rounded-lg p-2 shadow-lg">
                     <p className="font-medium">{label}</p>
                     <p className="text-sm">
-                      {t('analytics.sentiment')}: {payload[0].value.toFixed(2)}
+                      {t('analytics.sentiment')}: {sentimentValue}
                     </p>
                     <p className="text-sm">
                       {t('analytics.entries')}: {payload[1].value}
@@ -141,4 +160,4 @@ export function SentimentTimeline({ dateRange }: SentimentTimelineProps) {
       </ResponsiveContainer>
     </div>
   );
-} 
+}
