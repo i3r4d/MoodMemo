@@ -1,0 +1,43 @@
+{
+  "dashboard": "Analytics Dashboard",
+  "edit": "Edit Layout",
+  "done": "Done",
+  "add_widget": "Add Widget",
+  "error": "Error",
+  "no_data": "No data available",
+  "date_range": "Date Range",
+  "sentiment": "Sentiment",
+  "entries": "Entries",
+  "dominant_emotion": "Dominant Emotion",
+  "peak_time": "Peak Time",
+  "peak_day": "Peak Day",
+  "emotional_stability": "Emotional Stability",
+  "stability_description": "Based on sentiment variation over time",
+  "word_cloud": "Word Cloud",
+  "sentiment_timeline": "Sentiment Timeline",
+  "mood_tag_correlation": "Mood vs Tags",
+  "writing_patterns": "Writing Patterns",
+  "emotional_insights": "Emotional Insights",
+  "widgets": {
+    "word_cloud": {
+      "title": "Most Used Words",
+      "description": "Words that appear most frequently in your journal entries"
+    },
+    "sentiment_timeline": {
+      "title": "Sentiment Over Time",
+      "description": "Track your emotional journey through time"
+    },
+    "mood_tag_correlation": {
+      "title": "Mood & Tag Correlation",
+      "description": "See how different tags relate to your moods"
+    },
+    "writing_patterns": {
+      "title": "Writing Patterns",
+      "description": "Discover when you tend to write your entries"
+    },
+    "emotional_insights": {
+      "title": "Emotional Insights",
+      "description": "Key patterns and trends in your emotional state"
+    }
+  }
+} 

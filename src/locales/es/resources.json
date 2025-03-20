@@ -1,0 +1,14 @@
+{
+  "title": "Centro de Aprendizaje",
+  "description": "Explora artículos, guías y consejos para mejorar tu viaje de diario",
+  "error": "Error de Carga",
+  "error_description": "Hubo un error al cargar los recursos. Por favor, inténtalo de nuevo.",
+  "read_more": "Leer Más",
+  "categories": {
+    "getting_started": "Comenzar",
+    "journaling_techniques": "Técnicas de Diario",
+    "mental_health": "Salud Mental",
+    "app_features": "Características de la App",
+    "wellness_tips": "Consejos de Bienestar"
+  }
+} 

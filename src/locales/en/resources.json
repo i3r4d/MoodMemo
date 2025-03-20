@@ -1,0 +1,14 @@
+{
+  "title": "Learning Center",
+  "description": "Explore articles, guides, and tips to enhance your journaling journey",
+  "error": "Loading Error",
+  "error_description": "There was an error loading the resources. Please try again.",
+  "read_more": "Read More",
+  "categories": {
+    "getting_started": "Getting Started",
+    "journaling_techniques": "Journaling Techniques",
+    "mental_health": "Mental Health",
+    "app_features": "App Features",
+    "wellness_tips": "Wellness Tips"
+  }
+} 

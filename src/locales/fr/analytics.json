@@ -1,0 +1,43 @@
+{
+  "dashboard": "Tableau de Bord Analytique",
+  "edit": "Modifier la Disposition",
+  "done": "Terminé",
+  "add_widget": "Ajouter un Widget",
+  "error": "Erreur",
+  "no_data": "Aucune donnée disponible",
+  "date_range": "Période",
+  "sentiment": "Sentiment",
+  "entries": "Entrées",
+  "dominant_emotion": "Émotion Dominante",
+  "peak_time": "Heure de Pointe",
+  "peak_day": "Jour de Pointe",
+  "emotional_stability": "Stabilité Émotionnelle",
+  "stability_description": "Basé sur la variation du sentiment dans le temps",
+  "word_cloud": "Nuage de Mots",
+  "sentiment_timeline": "Chronologie des Sentiments",
+  "mood_tag_correlation": "Corrélation Humeur vs Tags",
+  "writing_patterns": "Motifs d'Écriture",
+  "emotional_insights": "Perspectives Émotionnelles",
+  "widgets": {
+    "word_cloud": {
+      "title": "Mots les Plus Utilisés",
+      "description": "Mots qui apparaissent le plus fréquemment dans vos entrées"
+    },
+    "sentiment_timeline": {
+      "title": "Sentiment dans le Temps",
+      "description": "Suivez votre parcours émotionnel à travers le temps"
+    },
+    "mood_tag_correlation": {
+      "title": "Corrélation Humeur et Tags",
+      "description": "Observez comment les différents tags sont liés à vos humeurs"
+    },
+    "writing_patterns": {
+      "title": "Motifs d'Écriture",
+      "description": "Découvrez quand vous avez tendance à écrire vos entrées"
+    },
+    "emotional_insights": {
+      "title": "Perspectives Émotionnelles",
+      "description": "Motifs et tendances clés de votre état émotionnel"
+    }
+  }
+} 

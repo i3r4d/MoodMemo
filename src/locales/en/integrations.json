@@ -1,0 +1,32 @@
+{
+  "title": "App Integrations",
+  "description": "Connect your favorite apps to enhance your journaling experience",
+  "connect": "Connect",
+  "disconnect": "Disconnect",
+  "error": "Error",
+  "disconnected": "Disconnected",
+  "disconnected_message": "Integration has been disconnected successfully",
+  "settings_updated": "Settings Updated",
+  "settings_updated_message": "Integration settings have been updated successfully",
+  "sync_entries": "Sync Journal Entries",
+  "create_tasks": "Create Tasks from Insights",
+  "providers": {
+    "google_calendar": {
+      "name": "Google Calendar",
+      "description": "Sync your journal entries as calendar events"
+    },
+    "todoist": {
+      "name": "Todoist",
+      "description": "Create tasks from your journal insights"
+    },
+    "apple_health": {
+      "name": "Apple Health",
+      "description": "Correlate your physical activity with your mood"
+    }
+  },
+  "oauth": {
+    "success": "Connected Successfully",
+    "error": "Connection Failed",
+    "error_message": "There was an error connecting to the service"
+  }
+} 

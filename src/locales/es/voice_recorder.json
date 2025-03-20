@@ -1,0 +1,12 @@
+{
+  "recording_started": "Grabación Iniciada",
+  "recording_started_description": "Tu voz está siendo grabada. Habla claramente en el micrófono.",
+  "recording_stopped": "Grabación Detenida",
+  "recording_stopped_description": "Tu grabación ha sido guardada.",
+  "recording_paused": "Grabación Pausada",
+  "recording_paused_description": "La grabación está pausada. Haz clic en reanudar para continuar.",
+  "recording_resumed": "Grabación Reanudada",
+  "recording_resumed_description": "La grabación ha reanudado. Continúa hablando.",
+  "error": "Error de Grabación",
+  "error_description": "Hubo un error con la grabación. Por favor, inténtalo de nuevo."
+} 

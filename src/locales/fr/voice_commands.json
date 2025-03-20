@@ -1,0 +1,17 @@
+{
+  "title": "Commandes Vocales",
+  "description": "Contrôlez l'application en utilisant des commandes vocales pour une utilisation sans les mains",
+  "enable": "Activer les Commandes Vocales",
+  "enable_description": "Permettre à l'application d'écouter les commandes vocales",
+  "available_commands": "Commandes Disponibles",
+  "commands": {
+    "start_recording": "Démarrer l'enregistrement",
+    "stop_recording": "Arrêter l'enregistrement",
+    "pause_recording": "Mettre en pause l'enregistrement",
+    "resume_recording": "Reprendre l'enregistrement",
+    "add_tag": "Ajouter une étiquette",
+    "set_mood": "Définir l'humeur",
+    "save_entry": "Enregistrer l'entrée",
+    "delete_entry": "Supprimer l'entrée"
+  }
+} 

@@ -1,0 +1,12 @@
+{
+  "recording_started": "Recording Started",
+  "recording_started_description": "Your voice is being recorded. Speak clearly into your microphone.",
+  "recording_stopped": "Recording Stopped",
+  "recording_stopped_description": "Your recording has been saved.",
+  "recording_paused": "Recording Paused",
+  "recording_paused_description": "Recording is paused. Click resume to continue.",
+  "recording_resumed": "Recording Resumed",
+  "recording_resumed_description": "Recording has resumed. Continue speaking.",
+  "error": "Recording Error",
+  "error_description": "There was an error with the recording. Please try again."
+} 

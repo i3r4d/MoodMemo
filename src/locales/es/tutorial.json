@@ -1,0 +1,9 @@
+{
+  "error": "Error del Tutorial",
+  "error_description": "Hubo un error al cargar el tutorial. Por favor, inténtalo de nuevo.",
+  "previous": "Anterior",
+  "next": "Siguiente",
+  "finish": "Finalizar",
+  "skipped": "Tutorial Omitido",
+  "skipped_description": "Siempre puedes acceder al tutorial nuevamente desde el menú de configuración."
+} 

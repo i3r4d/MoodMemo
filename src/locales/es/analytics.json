@@ -1,0 +1,43 @@
+{
+  "dashboard": "Panel de Análisis",
+  "edit": "Editar Diseño",
+  "done": "Listo",
+  "add_widget": "Agregar Widget",
+  "error": "Error",
+  "no_data": "No hay datos disponibles",
+  "date_range": "Rango de Fechas",
+  "sentiment": "Sentimiento",
+  "entries": "Entradas",
+  "dominant_emotion": "Emoción Dominante",
+  "peak_time": "Hora Pico",
+  "peak_day": "Día Pico",
+  "emotional_stability": "Estabilidad Emocional",
+  "stability_description": "Basado en la variación del sentimiento a lo largo del tiempo",
+  "word_cloud": "Nube de Palabras",
+  "sentiment_timeline": "Línea de Tiempo del Sentimiento",
+  "mood_tag_correlation": "Correlación Humor vs Etiquetas",
+  "writing_patterns": "Patrones de Escritura",
+  "emotional_insights": "Perspectivas Emocionales",
+  "widgets": {
+    "word_cloud": {
+      "title": "Palabras Más Usadas",
+      "description": "Palabras que aparecen con mayor frecuencia en tus entradas"
+    },
+    "sentiment_timeline": {
+      "title": "Sentimiento en el Tiempo",
+      "description": "Sigue tu viaje emocional a través del tiempo"
+    },
+    "mood_tag_correlation": {
+      "title": "Correlación Humor y Etiquetas",
+      "description": "Observa cómo las diferentes etiquetas se relacionan con tus estados de ánimo"
+    },
+    "writing_patterns": {
+      "title": "Patrones de Escritura",
+      "description": "Descubre cuándo sueles escribir tus entradas"
+    },
+    "emotional_insights": {
+      "title": "Perspectivas Emocionales",
+      "description": "Patrones y tendencias clave en tu estado emocional"
+    }
+  }
+} 

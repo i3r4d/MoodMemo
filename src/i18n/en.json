@@ -1,0 +1,31 @@
+{
+  "recording": {
+    "title": "Voice Recording",
+    "started": "Recording Started",
+    "speak_now": "Start speaking now...",
+    "completed": "Recording Completed",
+    "transcription_ready": "Your transcription is ready!",
+    "error": "Recording Error",
+    "language": "Language",
+    "enhanced_model": "Enhanced Model",
+    "enhanced_model_description": "Use a more accurate model for better transcription quality",
+    "punctuation": "Add Punctuation",
+    "punctuation_description": "Automatically add punctuation marks to the transcription",
+    "profanity_filter": "Profanity Filter",
+    "profanity_filter_description": "Filter out inappropriate words from the transcription"
+  },
+  "progress": {
+    "streak": "Streak",
+    "achievements": "Achievements",
+    "rewards": "Rewards",
+    "current_streak": "Current Streak",
+    "longest_streak": "Longest Streak",
+    "days": "days",
+    "next_achievement": "Next Achievement",
+    "progress": "Progress",
+    "completed": "Completed",
+    "unlocked": "Unlocked",
+    "locked": "Locked",
+    "error": "Error Loading Progress"
+  }
+} 

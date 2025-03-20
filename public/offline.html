@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Mood Memo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+      color: #212529;
+    }
+
+    .container {
+      max-width: 600px;
+      text-align: center;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #343a40;
+    }
+
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: #6c757d;
+      margin-bottom: 2rem;
+    }
+
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background-color: #228be6;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .button:hover {
+      background-color: #1c7ed6;
+    }
+
+    .tips {
+      margin-top: 2rem;
+      text-align: left;
+      background-color: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 4px;
+    }
+
+    .tips h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: #343a40;
+    }
+
+    .tips ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .tips li {
+      margin-bottom: 0.5rem;
+      color: #6c757d;
+    }
+
+    .tips li:before {
+      content: "•";
+      color: #228be6;
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+      margin-left: -1em;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #212529;
+        color: #f8f9fa;
+      }
+
+      .container {
+        background-color: #343a40;
+      }
+
+      h1 {
+        color: #f8f9fa;
+      }
+
+      p {
+        color: #adb5bd;
+      }
+
+      .tips {
+        background-color: #343a40;
+      }
+
+      .tips h2 {
+        color: #f8f9fa;
+      }
+
+      .tips li {
+        color: #adb5bd;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>
+      Don't worry! You can still use Mood Memo to write journal entries, track your mood,
+      and record voice notes. All your changes will be saved locally and synced when you're back online.
+    </p>
+    <a href="/" class="button">Continue Offline</a>
+
+    <div class="tips">
+      <h2>What you can do offline:</h2>
+      <ul>
+        <li>Write and edit journal entries</li>
+        <li>Record voice notes</li>
+        <li>Track your mood</li>
+        <li>View your past entries</li>
+        <li>Add tags to entries</li>
+        <li>Use all journaling features</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Check if we're back online
+    window.addEventListener('online', () => {
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html> 

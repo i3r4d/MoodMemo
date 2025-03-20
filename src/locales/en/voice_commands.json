@@ -1,0 +1,17 @@
+{
+  "title": "Voice Commands",
+  "description": "Control the app using voice commands for hands-free operation",
+  "enable": "Enable Voice Commands",
+  "enable_description": "Allow the app to listen for voice commands",
+  "available_commands": "Available Commands",
+  "commands": {
+    "start_recording": "Start recording",
+    "stop_recording": "Stop recording",
+    "pause_recording": "Pause recording",
+    "resume_recording": "Resume recording",
+    "add_tag": "Add tag",
+    "set_mood": "Set mood",
+    "save_entry": "Save entry",
+    "delete_entry": "Delete entry"
+  }
+} 

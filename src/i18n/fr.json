@@ -1,0 +1,31 @@
+{
+  "recording": {
+    "title": "Enregistrement Vocal",
+    "started": "Enregistrement Démarré",
+    "speak_now": "Commencez à parler maintenant...",
+    "completed": "Enregistrement Terminé",
+    "transcription_ready": "Votre transcription est prête !",
+    "error": "Erreur d'Enregistrement",
+    "language": "Langue",
+    "enhanced_model": "Modèle Amélioré",
+    "enhanced_model_description": "Utiliser un modèle plus précis pour une meilleure qualité de transcription",
+    "punctuation": "Ajouter la Ponctuation",
+    "punctuation_description": "Ajouter automatiquement des signes de ponctuation à la transcription",
+    "profanity_filter": "Filtre de Grossièretés",
+    "profanity_filter_description": "Filtrer les mots inappropriés de la transcription"
+  },
+  "progress": {
+    "streak": "Série",
+    "achievements": "Succès",
+    "rewards": "Récompenses",
+    "current_streak": "Série Actuelle",
+    "longest_streak": "Plus Longue Série",
+    "days": "jours",
+    "next_achievement": "Prochain Succès",
+    "progress": "Progression",
+    "completed": "Terminé",
+    "unlocked": "Débloqué",
+    "locked": "Verrouillé",
+    "error": "Erreur de Chargement du Progrès"
+  }
+} 

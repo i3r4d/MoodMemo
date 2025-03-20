@@ -1,0 +1,31 @@
+{
+  "recording": {
+    "title": "Grabación de Voz",
+    "started": "Grabación Iniciada",
+    "speak_now": "Empiece a hablar ahora...",
+    "completed": "Grabación Completada",
+    "transcription_ready": "¡Su transcripción está lista!",
+    "error": "Error de Grabación",
+    "language": "Idioma",
+    "enhanced_model": "Modelo Mejorado",
+    "enhanced_model_description": "Usar un modelo más preciso para mejor calidad de transcripción",
+    "punctuation": "Agregar Puntuación",
+    "punctuation_description": "Agregar automáticamente signos de puntuación a la transcripción",
+    "profanity_filter": "Filtro de Profanidad",
+    "profanity_filter_description": "Filtrar palabras inapropiadas de la transcripción"
+  },
+  "progress": {
+    "streak": "Racha",
+    "achievements": "Logros",
+    "rewards": "Recompensas",
+    "current_streak": "Racha Actual",
+    "longest_streak": "Racha Más Larga",
+    "days": "días",
+    "next_achievement": "Próximo Logro",
+    "progress": "Progreso",
+    "completed": "Completado",
+    "unlocked": "Desbloqueado",
+    "locked": "Bloqueado",
+    "error": "Error al Cargar el Progreso"
+  }
+} 

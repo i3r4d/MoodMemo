@@ -1,0 +1,17 @@
+{
+  "title": "Comandos de Voz",
+  "description": "Controla la aplicación usando comandos de voz para operación sin manos",
+  "enable": "Activar Comandos de Voz",
+  "enable_description": "Permitir que la aplicación escuche comandos de voz",
+  "available_commands": "Comandos Disponibles",
+  "commands": {
+    "start_recording": "Iniciar grabación",
+    "stop_recording": "Detener grabación",
+    "pause_recording": "Pausar grabación",
+    "resume_recording": "Reanudar grabación",
+    "add_tag": "Añadir etiqueta",
+    "set_mood": "Establecer estado de ánimo",
+    "save_entry": "Guardar entrada",
+    "delete_entry": "Eliminar entrada"
+  }
+} 

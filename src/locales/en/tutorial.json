@@ -1,0 +1,9 @@
+{
+  "error": "Tutorial Error",
+  "error_description": "There was an error loading the tutorial. Please try again.",
+  "previous": "Previous",
+  "next": "Next",
+  "finish": "Finish",
+  "skipped": "Tutorial Skipped",
+  "skipped_description": "You can always access the tutorial again from the settings menu."
+} 

@@ -1,143 +1,116 @@
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOfflineStorage } from '@/hooks/useOfflineStorage';
+import Layout from '@/components/Layout';
+import Index from '@/pages/Index';
+import Journal from '@/pages/Journal';
+import Dashboard from '@/pages/Dashboard';
+import Settings from '@/pages/Settings';
+import Exercises from '@/pages/Exercises';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Onboarding from '@/pages/Onboarding';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Layout from "@/components/Layout";
-import Index from "@/pages/Index";
-import Auth from "@/pages/Auth";
-import Journal from "@/pages/Journal";
-import Dashboard from "@/pages/Dashboard";
-import Exercises from "@/pages/Exercises";
-import Settings from "@/pages/Settings";
-import MyAccount from "@/pages/MyAccount";
-import NotFound from "@/pages/NotFound";
-import AuthScreen from "@/components/AuthScreen";
-import { useState } from "react";
+const App: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+  const { isOnline, pendingEntries, syncPendingEntries } = useOfflineStorage();
 
-const queryClient = new QueryClient();
+  // Register service worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/service-worker.js')
+          .then((registration) => {
+            console.log('ServiceWorker registration successful');
+          })
+          .catch((err) => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
+  }, []);
 
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  // Show loading state if auth state is still being determined
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">
-      <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>;
-  }
-  
-  // Redirect to auth page if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
-  
-  return <>{children}</>;
-};
-
-const AppRoutes = () => {
-  const [onboardingComplete, setOnboardingComplete] = useState(
-    localStorage.getItem("onboardingComplete") === "true"
-  );
-
-  const handleOnboardingComplete = () => {
-    localStorage.setItem("onboardingComplete", "true");
-    setOnboardingComplete(true);
-  };
-
-  const { isAuthenticated } = useAuth();
+  // Handle offline/online status
+  useEffect(() => {
+    if (isOnline && pendingEntries.length > 0) {
+      syncPendingEntries();
+    }
+  }, [isOnline, pendingEntries, syncPendingEntries]);
 
   return (
-    <BrowserRouter>
-      <Layout>
-        <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={
-              isAuthenticated ? <Navigate to="/journal" replace /> : <Auth />
-            } />
-            <Route
-              path="/journal"
-              element={
-                <ProtectedRoute>
-                  {onboardingComplete ? (
-                    <Journal />
-                  ) : (
-                    <AuthScreen onComplete={handleOnboardingComplete} />
-                  )}
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  {onboardingComplete ? (
-                    <Dashboard />
-                  ) : (
-                    <AuthScreen onComplete={handleOnboardingComplete} />
-                  )}
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/exercises"
-              element={
-                <ProtectedRoute>
-                  {onboardingComplete ? (
-                    <Exercises />
-                  ) : (
-                    <AuthScreen onComplete={handleOnboardingComplete} />
-                  )}
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  {onboardingComplete ? (
-                    <Settings />
-                  ) : (
-                    <AuthScreen onComplete={handleOnboardingComplete} />
-                  )}
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-account"
-              element={
-                <ProtectedRoute>
-                  {onboardingComplete ? (
-                    <MyAccount />
-                  ) : (
-                    <AuthScreen onComplete={handleOnboardingComplete} />
-                  )}
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
-      </Layout>
-    </BrowserRouter>
+    <Router>
+      <div className="min-h-screen bg-background">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Index />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/journal"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Journal />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/exercises"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Exercises />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Settings />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <Toaster />
+      </div>
+    </Router>
   );
 };
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <AppRoutes />
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
 
 export default App;

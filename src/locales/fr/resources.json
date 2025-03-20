@@ -1,0 +1,14 @@
+{
+  "title": "Centre d'Apprentissage",
+  "description": "Explorez des articles, des guides et des conseils pour améliorer votre voyage de journal",
+  "error": "Erreur de Chargement",
+  "error_description": "Une erreur s'est produite lors du chargement des ressources. Veuillez réessayer.",
+  "read_more": "Lire Plus",
+  "categories": {
+    "getting_started": "Pour Commencer",
+    "journaling_techniques": "Techniques de Journal",
+    "mental_health": "Santé Mentale",
+    "app_features": "Fonctionnalités de l'App",
+    "wellness_tips": "Conseils de Bien-être"
+  }
+} 

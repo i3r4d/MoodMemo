@@ -1,0 +1,32 @@
+{
+  "title": "Integraciones de Aplicaciones",
+  "description": "Conecta tus aplicaciones favoritas para mejorar tu experiencia de diario",
+  "connect": "Conectar",
+  "disconnect": "Desconectar",
+  "error": "Error",
+  "disconnected": "Desconectado",
+  "disconnected_message": "La integración se ha desconectado correctamente",
+  "settings_updated": "Configuración Actualizada",
+  "settings_updated_message": "La configuración de la integración se ha actualizado correctamente",
+  "sync_entries": "Sincronizar Entradas del Diario",
+  "create_tasks": "Crear Tareas desde Perspectivas",
+  "providers": {
+    "google_calendar": {
+      "name": "Google Calendar",
+      "description": "Sincroniza tus entradas del diario como eventos del calendario"
+    },
+    "todoist": {
+      "name": "Todoist",
+      "description": "Crea tareas desde tus perspectivas del diario"
+    },
+    "apple_health": {
+      "name": "Apple Health",
+      "description": "Correlaciona tu actividad física con tu estado de ánimo"
+    }
+  },
+  "oauth": {
+    "success": "Conectado Exitosamente",
+    "error": "Error de Conexión",
+    "error_message": "Hubo un error al conectar con el servicio"
+  }
+} 

@@ -1,0 +1,9 @@
+{
+  "error": "Erreur du Tutoriel",
+  "error_description": "Une erreur s'est produite lors du chargement du tutoriel. Veuillez réessayer.",
+  "previous": "Précédent",
+  "next": "Suivant",
+  "finish": "Terminer",
+  "skipped": "Tutoriel Ignoré",
+  "skipped_description": "Vous pouvez toujours accéder au tutoriel depuis le menu des paramètres."
+} 

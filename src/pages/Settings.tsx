@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -16,7 +15,11 @@ import {
   EyeIcon, 
   KeyIcon, 
   CheckCircleIcon,
-  CalendarIcon
+  CalendarIcon,
+  LogOut,
+  User,
+  Bell,
+  Shield
 } from 'lucide-react';
 import ReportGenerator from '@/components/ReportGenerator';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,6 +28,12 @@ import PremiumCheckout from '@/components/PremiumCheckout';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useJournalStorage } from '@/hooks/useJournalStorage';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTheme } from '@/contexts/ThemeContext';
+import DeviceConnections from '@/components/DeviceConnections';
+import HealthMetrics from '@/components/HealthMetrics';
+import ReminderManager from '@/components/ReminderManager';
 
 const Settings = () => {
   const { localStorageOnly, toggleStoragePreference } = useJournalStorage();
@@ -34,9 +43,12 @@ const Settings = () => {
   const [pinCode, setPinCode] = useState('');
   const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, profile, isPremium } = useAuth();
+  const { user, profile, isPremium, signOut } = useAuth();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const [notifications, setNotifications] = useState(true);
+  const [emailUpdates, setEmailUpdates] = useState(true);
   
   // Check for payment success in URL parameters
   useEffect(() => {
@@ -181,258 +193,147 @@ const Settings = () => {
     });
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: 'Signed Out',
+        description: 'You have been successfully signed out.',
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to sign out. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    toast({
+      title: 'Theme Updated',
+      description: `Theme changed to ${newTheme} mode.`,
+    });
+  };
+
   return (
     <AnimatedTransition keyValue="settings">
-      <div className="max-w-2xl mx-auto py-4 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold mb-2">Settings</h1>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleCrisisResourcesClick}
-            className="text-red-500 border-red-200 hover:bg-red-50"
-          >
-            <AlertTriangleIcon className="h-4 w-4 mr-1" />
-            Crisis Resources
-          </Button>
-        </div>
-        
-        <div className="glass-morphism mood-journal-card space-y-6">
-          <div>
-            <h2 className="text-lg font-medium flex items-center gap-2 mb-4">
-              <ShieldIcon className="h-5 w-5 text-primary" />
-              Security & Privacy
-            </h2>
-            
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium flex items-center gap-1">
-                    <FingerprintIcon className="h-4 w-4" />
-                    Biometric Unlock
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Use fingerprint or Face ID to access journal
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Switch 
-                    checked={biometricEnabled} 
-                    onCheckedChange={handleEnableBiometric} 
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium flex items-center gap-1">
-                    <KeyIcon className="h-4 w-4" />
-                    PIN Protection
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Secure journal with a 4-digit PIN
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {!pinEnabled ? (
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        type="password" 
-                        value={pinCode}
-                        onChange={(e) => setPinCode(e.target.value)}
-                        placeholder="****"
-                        className="w-20 text-center"
-                        maxLength={4}
-                      />
-                      <Button size="sm" onClick={handleSetPin}>Set</Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-green-600">PIN Enabled</span>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="text-xs h-8"
-                        onClick={() => setPinEnabled(false)}
-                      >
-                        Change
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium flex items-center gap-1">
-                    <EyeIcon className="h-4 w-4" />
-                    Local Storage Only
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {isPremium 
-                      ? "Store entries on this device only, even with premium"
-                      : "Entries never leave your device unless exported"}
-                  </p>
-                </div>
-                <Switch 
-                  checked={localStorageOnly} 
-                  onCheckedChange={toggleStoragePreference}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium flex items-center gap-1">
-                    <LockIcon className="h-4 w-4" />
-                    Encrypt Journal Data
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    AES-256 encryption for maximum security
-                  </p>
-                </div>
-                <Switch 
-                  checked={encryptData} 
-                  onCheckedChange={setEncryptData} 
-                />
-              </div>
-              
-              <div className="pt-4 border-t">
-                <ReportGenerator insightsView={true} />
-              </div>
-              
-              <div className="pt-4 border-t">
-                <div className="bg-blue-50 p-3 rounded-lg text-blue-700 text-sm flex gap-2">
-                  <div className="shrink-0 mt-0.5">
-                    <ShieldIcon className="h-5 w-5" />
+      <div className="max-w-4xl mx-auto py-4 space-y-6">
+        <h1 className="text-2xl font-bold">Settings</h1>
+
+        <Tabs defaultValue="general" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="devices">Devices</TabsTrigger>
+            <TabsTrigger value="health">Health Data</TabsTrigger>
+            <TabsTrigger value="account">Account</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="general" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appearance</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="theme">Theme</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={theme === 'light' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleThemeChange('light')}
+                    >
+                      Light
+                    </Button>
+                    <Button
+                      variant={theme === 'dark' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleThemeChange('dark')}
+                    >
+                      Dark
+                    </Button>
+                    <Button
+                      variant={theme === 'system' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleThemeChange('system')}
+                    >
+                      System
+                    </Button>
                   </div>
-                  <div>
-                    <p className="font-medium">Privacy Disclaimer</p>
-                    <p className="text-blue-600 mt-1">
-                      {isPremium && !localStorageOnly
-                        ? "Premium accounts store journal entries and audio in the cloud with encryption. We respect your privacy and never share your data."
-                        : "Your data is stored locally and never shared unless you export a report. We value your privacy and security."}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Notifications</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Push Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive notifications for daily reminders and updates.
                     </p>
                   </div>
+                  <Switch
+                    checked={notifications}
+                    onCheckedChange={setNotifications}
+                  />
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Only show Premium Membership section to non-premium users */}
-        {!isPremium && (
-          <div className="glass-morphism mood-journal-card space-y-6">
-            <div>
-              <h2 className="text-lg font-medium flex items-center gap-2 mb-4">
-                <CreditCardIcon className="h-5 w-5 text-primary" />
-                Premium Membership
-              </h2>
-              
-              <div className="p-4 rounded-lg bg-white space-y-3 border border-gray-100">
-                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-                  <div className="text-muted-foreground">Feature</div>
-                  <div className="font-medium text-center">Free</div>
-                  <div className="font-medium text-center text-primary">Premium</div>
-                  
-                  <div>Voice Journaling</div>
-                  <div className="text-center">Basic</div>
-                  <div className="text-center">Advanced</div>
-                  
-                  <div>Cloud Storage</div>
-                  <div className="text-center">—</div>
-                  <div className="text-center">Unlimited</div>
-                  
-                  <div>Ads</div>
-                  <div className="text-center">Yes</div>
-                  <div className="text-center">No Ads</div>
-                  
-                  <div>Guided Exercises</div>
-                  <div className="text-center">5 Basic</div>
-                  <div className="text-center">50+ Premium</div>
-                  
-                  <div>Advanced Insights</div>
-                  <div className="text-center">—</div>
-                  <div className="text-center">✓</div>
-                  
-                  <div>Export Options</div>
-                  <div className="text-center">JSON only</div>
-                  <div className="text-center">PDF, CSV, JSON</div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Email Updates</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive weekly email summaries of your journal entries.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={emailUpdates}
+                    onCheckedChange={setEmailUpdates}
+                  />
                 </div>
-                
-                <Button 
-                  onClick={handleSubscribe}
-                  className="w-full bg-gradient-to-r from-primary to-primary/80"
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="devices" className="space-y-4">
+            <DeviceConnections />
+          </TabsContent>
+
+          <TabsContent value="health" className="space-y-4">
+            <HealthMetrics />
+          </TabsContent>
+
+          <TabsContent value="account" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                  />
+                </div>
+                <Separator />
+                <Button
+                  variant="destructive"
+                  onClick={handleSignOut}
                 >
-                  Upgrade to Premium - $4.99/month
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
                 </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  Cancel anytime • 7-day free trial
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div className="glass-morphism mood-journal-card space-y-4">
-          <h2 className="text-lg font-medium">Data</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <p className="font-medium">Export Data</p>
-              <p className="text-sm text-muted-foreground">Download your journal entries</p>
-              <Button 
-                className="mt-2 text-sm px-3 py-1" 
-                variant="outline" 
-                size="sm"
-                onClick={handleExportJSON}
-              >
-                Export as JSON
-              </Button>
-              
-              {isPremium && (
-                <Button 
-                  className="mt-2 ml-2 text-sm px-3 py-1" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    toast({
-                      title: "PDF Export",
-                      description: "Your journal entries are being prepared as a PDF document.",
-                    });
-                    
-                    // Simulate PDF generation
-                    setTimeout(() => {
-                      toast({
-                        title: "Export Complete",
-                        description: "Your PDF export is ready for download.",
-                      });
-                    }, 2000);
-                  }}
-                >
-                  Export as PDF
-                </Button>
-              )}
-            </div>
-            
-            <div>
-              <p className="font-medium text-destructive">Clear Data</p>
-              <p className="text-sm text-muted-foreground">Delete all journal entries</p>
-              <Button 
-                onClick={handleReset}
-                className="mt-2 text-sm px-3 py-1"
-                variant="destructive"
-                size="sm"
-              >
-                Reset All Data
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-center text-sm text-muted-foreground">
-          <p>MoodMemo v1.0.0</p>
-          <p>© 2023 MoodMemo. All rights reserved.</p>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
       
       {/* Premium Checkout Dialog */}

@@ -1,0 +1,32 @@
+{
+  "title": "Intégrations d'Applications",
+  "description": "Connectez vos applications préférées pour améliorer votre expérience de journal",
+  "connect": "Connecter",
+  "disconnect": "Déconnecter",
+  "error": "Erreur",
+  "disconnected": "Déconnecté",
+  "disconnected_message": "L'intégration a été déconnectée avec succès",
+  "settings_updated": "Paramètres Mis à Jour",
+  "settings_updated_message": "Les paramètres d'intégration ont été mis à jour avec succès",
+  "sync_entries": "Synchroniser les Entrées du Journal",
+  "create_tasks": "Créer des Tâches à partir des Perspectives",
+  "providers": {
+    "google_calendar": {
+      "name": "Google Calendar",
+      "description": "Synchronisez vos entrées de journal comme événements du calendrier"
+    },
+    "todoist": {
+      "name": "Todoist",
+      "description": "Créez des tâches à partir de vos perspectives du journal"
+    },
+    "apple_health": {
+      "name": "Apple Health",
+      "description": "Corrélez votre activité physique avec votre humeur"
+    }
+  },
+  "oauth": {
+    "success": "Connecté avec Succès",
+    "error": "Échec de la Connexion",
+    "error_message": "Une erreur s'est produite lors de la connexion au service"
+  }
+} 

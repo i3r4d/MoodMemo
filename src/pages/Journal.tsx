@@ -36,6 +36,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import GuidedPrompts from '@/components/GuidedPrompts';
+import SentimentAnalysis from '@/components/SentimentAnalysis';
+import { supabase } from '@/lib/supabase';
 
 type JournalMode = 'list' | 'create-text' | 'create-voice';
 
@@ -54,6 +57,15 @@ const Journal = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [template, setTemplate] = useState<string>('');
   const [formatting, setFormatting] = useState({ bold: false, italic: false, list: false });
+  const [showPrompts, setShowPrompts] = useState(false);
+  const [sentimentAnalysis, setSentimentAnalysis] = useState<{
+    sentiment: 'positive' | 'neutral' | 'negative';
+    confidence: number;
+    emotions: string[];
+    suggestions: string[];
+    summary: string;
+  } | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Reset form when changing to create mode
   useEffect(() => {
@@ -77,6 +89,38 @@ const Journal = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
+  const analyzeSentiment = async (text: string) => {
+    if (!text.trim()) return;
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-sentiment', {
+        body: { text }
+      });
+
+      if (error) throw error;
+      setSentimentAnalysis(data);
+    } catch (error) {
+      console.error('Error analyzing sentiment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to analyze sentiment. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    // Add the suggestion as a new journal entry
+    setText(suggestion);
+    toast({
+      title: 'Suggestion Applied',
+      description: 'The suggestion has been added to your entry.',
+    });
+  };
+
   const handleCreateEntry = async () => {
     if (!text.trim()) {
       toast({
@@ -90,6 +134,9 @@ const Journal = () => {
     setSubmitting(true);
     
     try {
+      // Analyze sentiment before saving
+      await analyzeSentiment(text);
+      
       // Analyze mood if not manually selected
       const detectedMood = mood || await analyzeMood(text);
       
@@ -103,6 +150,7 @@ const Journal = () => {
         tags,
         template: selectedTemplate,
         formatting,
+        sentimentAnalysis: sentimentAnalysis,
       });
       
       toast({
@@ -118,6 +166,7 @@ const Journal = () => {
       setSelectedTemplate(null);
       setMode('list');
       setFormatting({ bold: false, italic: false, list: false });
+      setSentimentAnalysis(null);
     } catch (error) {
       console.error('Error creating journal entry:', error);
       toast({
@@ -237,6 +286,15 @@ const Journal = () => {
     }
   };
 
+  const handlePromptSelect = (prompt: Prompt) => {
+    setText(prompt.prompt_text);
+    setShowPrompts(false);
+    toast({
+      title: 'Prompt Selected',
+      description: 'Start writing your response to the prompt.',
+    });
+  };
+
   const renderContent = () => {
     if (mode === 'create-text') {
       return (
@@ -252,20 +310,60 @@ const Journal = () => {
           
           <h2 className="text-xl font-semibold">New Journal Entry</h2>
           
-          {/* Template Selection */}
-          <div className="space-y-2">
-            <Label>Entry Template</Label>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {templates.map(t => (
+          {isPremium && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Template</label>
+              <div className="flex gap-2">
+                <Select value={template} onValueChange={handleTemplateSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map(t => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
-                  key={t.id}
-                  variant={selectedTemplate === t.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleTemplateSelect(t.id)}
+                  variant="outline"
+                  onClick={() => setShowPrompts(!showPrompts)}
                 >
-                  {t.name}
+                  {showPrompts ? 'Hide Prompts' : 'Show Guided Prompts'}
                 </Button>
-              ))}
+              </div>
+            </div>
+          )}
+
+          {showPrompts && (
+            <GuidedPrompts
+              currentMood={mood}
+              onSelectPrompt={handlePromptSelect}
+            />
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Mood</label>
+            <div className="flex gap-2">
+              <Button
+                variant={mood === 'happy' ? 'default' : 'outline'}
+                onClick={() => setMood('happy')}
+              >
+                😊 Happy
+              </Button>
+              <Button
+                variant={mood === 'neutral' ? 'default' : 'outline'}
+                onClick={() => setMood('neutral')}
+              >
+                😐 Neutral
+              </Button>
+              <Button
+                variant={mood === 'sad' ? 'default' : 'outline'}
+                onClick={() => setMood('sad')}
+              >
+                😢 Sad
+              </Button>
             </div>
           </div>
 
@@ -299,6 +397,14 @@ const Journal = () => {
               onFormattingChange={setFormatting}
             />
           </div>
+          
+          {/* Add Sentiment Analysis after the text editor */}
+          {sentimentAnalysis && (
+            <SentimentAnalysis
+              {...sentimentAnalysis}
+              onSuggestionClick={handleSuggestionClick}
+            />
+          )}
           
           {/* Mood Selection with Intensity */}
           <div className="space-y-4">
