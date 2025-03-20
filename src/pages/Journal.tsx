@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { motion } from 'framer-motion';
@@ -13,7 +12,14 @@ import {
   MicIcon, 
   PenIcon,
   TrashIcon,
-  SpeakerIcon
+  SpeakerIcon,
+  BoldIcon,
+  ItalicIcon,
+  ListIcon,
+  ImageIcon,
+  TagIcon,
+  Plus,
+  X
 } from 'lucide-react';
 import MoodPicker from '@/components/MoodPicker';
 import { useJournalStorage, JournalEntry } from '@/hooks/useJournalStorage';
@@ -23,6 +29,13 @@ import VoiceJournal from '@/components/VoiceJournal';
 import { MoodType, analyzeMood, getMoodColor, getMoodDescription } from '@/utils/moodAnalysis';
 import { useAuth } from '@/contexts/AuthContext';
 import ReportGenerator from '@/components/ReportGenerator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 
 type JournalMode = 'list' | 'create-text' | 'create-voice';
 
@@ -35,6 +48,12 @@ const Journal = () => {
   const { toast } = useToast();
   const { entries, isLoading, addEntry, deleteEntry } = useJournalStorage();
   const { isPremium } = useAuth();
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState('');
+  const [moodIntensity, setMoodIntensity] = useState<number>(5);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [template, setTemplate] = useState<string>('');
+  const [formatting, setFormatting] = useState({ bold: false, italic: false, list: false });
 
   // Reset form when changing to create mode
   useEffect(() => {
@@ -43,6 +62,20 @@ const Journal = () => {
       setMood(null);
     }
   }, [mode]);
+
+  const handleAddTag = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && newTag.trim()) {
+      e.preventDefault();
+      if (!tags.includes(newTag.trim())) {
+        setTags([...tags, newTag.trim()]);
+      }
+      setNewTag('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
 
   const handleCreateEntry = async () => {
     if (!text.trim()) {
@@ -60,12 +93,16 @@ const Journal = () => {
       // Analyze mood if not manually selected
       const detectedMood = mood || await analyzeMood(text);
       
-      // Add entry to journal storage
+      // Add entry to journal storage with enhanced data
       await addEntry({
         text,
         audioUrl: null,
         timestamp: new Date().toISOString(),
         mood: detectedMood,
+        moodIntensity,
+        tags,
+        template: selectedTemplate,
+        formatting,
       });
       
       toast({
@@ -73,8 +110,14 @@ const Journal = () => {
         description: "Your journal entry has been saved successfully.",
       });
       
-      // Return to list view
+      // Reset form
+      setText('');
+      setMood(null);
+      setMoodIntensity(5);
+      setTags([]);
+      setSelectedTemplate(null);
       setMode('list');
+      setFormatting({ bold: false, italic: false, list: false });
     } catch (error) {
       console.error('Error creating journal entry:', error);
       toast({
@@ -109,6 +152,7 @@ const Journal = () => {
         audioUrl,
         timestamp: new Date().toISOString(),
         mood: detectedMood,
+        formatting,
       });
       
       toast({
@@ -179,6 +223,20 @@ const Journal = () => {
     }));
   };
 
+  const templates = [
+    { id: 'gratitude', name: 'Gratitude Journal', content: 'Today I am grateful for:\n\n1.\n2.\n3.' },
+    { id: 'reflection', name: 'Daily Reflection', content: 'Today\'s Highlights:\n\nChallenges:\n\nTomorrow\'s Goals:' },
+    { id: 'mood', name: 'Mood Analysis', content: 'Current Mood:\n\nTriggers:\n\nCoping Strategies:' },
+  ];
+
+  const handleTemplateSelect = (templateId: string) => {
+    const selectedTemplate = templates.find(t => t.id === templateId);
+    if (selectedTemplate) {
+      setTemplate(templateId);
+      setText(selectedTemplate.content);
+    }
+  };
+
   const renderContent = () => {
     if (mode === 'create-text') {
       return (
@@ -194,19 +252,108 @@ const Journal = () => {
           
           <h2 className="text-xl font-semibold">New Journal Entry</h2>
           
-          <TextJournal
-            value={text}
-            onChange={setText}
-            onSubmit={handleCreateEntry}
-            isSubmitting={submitting}
-          />
-          
-          <div>
-            <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
-            <MoodPicker
-              selected={mood}
-              onSelect={setMood}
+          {/* Template Selection */}
+          <div className="space-y-2">
+            <Label>Entry Template</Label>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {templates.map(t => (
+                <Button
+                  key={t.id}
+                  variant={selectedTemplate === t.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleTemplateSelect(t.id)}
+                >
+                  {t.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Rich Text Editor */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1 border-b pb-2">
+              <ToggleGroup type="multiple" size="sm">
+                <ToggleGroupItem value="bold" aria-label="Toggle bold">
+                  <BoldIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="italic" aria-label="Toggle italic">
+                  <ItalicIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="Toggle list">
+                  <ListIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <div className="ml-auto">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <TextJournal
+              value={text}
+              onChange={setText}
+              onSubmit={handleCreateEntry}
+              isSubmitting={submitting}
+              formatting={formatting}
+              onFormattingChange={setFormatting}
             />
+          </div>
+          
+          {/* Mood Selection with Intensity */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
+              <MoodPicker
+                selected={mood}
+                onSelect={setMood}
+              />
+            </div>
+            
+            {mood && (
+              <div className="space-y-2">
+                <Label>Mood Intensity (1-10)</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={moodIntensity}
+                    onChange={(e) => setMoodIntensity(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-medium w-8 text-center">{moodIntensity}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-2">
+              {tags.map(tag => (
+                <span
+                  key={tag}
+                  className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:text-primary/80"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <Input
+                placeholder="Add tag..."
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={handleAddTag}
+                className="w-24"
+              />
+            </div>
           </div>
           
           <div className="flex justify-end">
@@ -248,29 +395,63 @@ const Journal = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Your Journal</h2>
-          <div className="flex items-center space-x-2">
+          <div className="flex gap-2">
             <Button
               variant="outline"
-              size="sm"
-              className="flex items-center"
               onClick={() => setMode('create-voice')}
+              className="gap-2"
             >
-              <MicIcon className="h-4 w-4 mr-1" />
-              Voice
+              <MicIcon className="h-4 w-4" />
+              Voice Entry
             </Button>
             <Button
-              variant="default"
-              size="sm"
-              className="flex items-center"
               onClick={() => setMode('create-text')}
+              className="gap-2"
             >
-              <PenIcon className="h-4 w-4 mr-1" />
-              Write
+              <PenIcon className="h-4 w-4" />
+              Text Entry
             </Button>
           </div>
         </div>
-        
-        <Tabs defaultValue="recent" value={activeTab} onValueChange={(v) => setActiveTab(v as 'recent' | 'moods')}>
+
+        {/* Quick Entry Card */}
+        <div className="glass-morphism mood-journal-card p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-grow">
+              <textarea
+                placeholder="How are you feeling today? Write your thoughts here..."
+                className="w-full min-h-[100px] p-3 rounded-lg bg-background/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={handleCreateEntry}
+                disabled={submitting || !text.trim()}
+                className="h-full"
+              >
+                {submitting ? 'Saving...' : 'Save Entry'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setMode('create-voice')}
+                className="h-full"
+              >
+                <MicIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="mt-3">
+            <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
+            <MoodPicker
+              selected={mood}
+              onSelect={setMood}
+            />
+          </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'recent' | 'moods')}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="recent">Recent Entries</TabsTrigger>
             <TabsTrigger value="moods">Mood Trends</TabsTrigger>

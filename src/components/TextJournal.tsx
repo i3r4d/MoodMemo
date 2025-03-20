@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +13,12 @@ interface TextJournalProps {
   onChange?: (value: string) => void;
   onSubmit?: () => Promise<void>;
   isSubmitting?: boolean;
+  formatting?: {
+    bold: boolean;
+    italic: boolean;
+    list: boolean;
+  };
+  onFormattingChange?: (formatting: { bold: boolean; italic: boolean; list: boolean }) => void;
 }
 
 const TextJournal: React.FC<TextJournalProps> = ({ 
@@ -22,11 +27,15 @@ const TextJournal: React.FC<TextJournalProps> = ({
   value, 
   onChange,
   onSubmit,
-  isSubmitting
+  isSubmitting,
+  formatting = { bold: false, italic: false, list: false },
+  onFormattingChange,
 }) => {
   const [content, setContent] = useState(value || '');
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const { toast } = useToast();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isAutoResizing, setIsAutoResizing] = useState(false);
 
   useEffect(() => {
     if (value !== undefined) {
@@ -34,12 +43,79 @@ const TextJournal: React.FC<TextJournalProps> = ({
     }
   }, [value]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      const resize = () => {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      };
+
+      textarea.addEventListener('input', resize);
+      resize(); // Initial resize
+
+      return () => textarea.removeEventListener('input', resize);
+    }
+  }, []);
+
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setContent(newValue);
     if (onChange) {
       onChange(newValue);
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      onSubmit?.();
+    }
+  };
+
+  const handleFormatting = (type: 'bold' | 'italic' | 'list') => {
+    if (!onFormattingChange) return;
+
+    const newFormatting = { ...formatting, [type]: !formatting[type] };
+    onFormattingChange(newFormatting);
+
+    // Apply formatting to selected text
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    let newText = content;
+
+    switch (type) {
+      case 'bold':
+        newText = content.substring(0, start) + `**${selectedText}**` + content.substring(end);
+        break;
+      case 'italic':
+        newText = content.substring(0, start) + `*${selectedText}*` + content.substring(end);
+        break;
+      case 'list':
+        const lines = selectedText.split('\n');
+        newText = content.substring(0, start) + 
+          lines.map(line => line.trim() ? `- ${line}` : line).join('\n') + 
+          content.substring(end);
+        break;
+    }
+
+    setContent(newText);
+    if (onChange) {
+      onChange(newText);
+    }
+
+    // Restore selection
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(start, end);
+      }
+    }, 0);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,11 +150,40 @@ const TextJournal: React.FC<TextJournalProps> = ({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-center gap-1 border-b pb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-8 w-8 p-0 ${formatting.bold ? 'bg-primary/10 text-primary' : ''}`}
+              onClick={() => handleFormatting('bold')}
+            >
+              <strong>B</strong>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-8 w-8 p-0 ${formatting.italic ? 'bg-primary/10 text-primary' : ''}`}
+              onClick={() => handleFormatting('italic')}
+            >
+              <em>I</em>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-8 w-8 p-0 ${formatting.list ? 'bg-primary/10 text-primary' : ''}`}
+              onClick={() => handleFormatting('list')}
+            >
+              ••
+            </Button>
+          </div>
+          
           <Textarea 
+            ref={textareaRef}
             placeholder="How are you feeling today? What's on your mind?"
             className="min-h-[200px] resize-none focus-visible:ring-1"
             value={content}
             onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
             disabled={isInLoadingState}
           />
           
