@@ -14,7 +14,7 @@ const Index = () => {
   const { toast } = useToast();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, signIn } = useAuth();
+  const { isAuthenticated, signIn, isPremium } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -375,7 +375,7 @@ const Index = () => {
                 whileHover={{ y: -5 }}
                 transition={{ duration: 0.2 }}
               >
-                {feature.premium && (
+                {feature.premium && !isPremium && (
                   <div className="absolute top-2 right-2 bg-amber-200 text-amber-800 font-medium px-2 py-0.5 rounded-full text-xs">
                     PREMIUM
                   </div>
@@ -388,7 +388,7 @@ const Index = () => {
                   
                   <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                     {feature.title}
-                    {feature.premium && <LockIcon className="h-3 w-3 text-amber-600" />}
+                    {feature.premium && !isPremium && <LockIcon className="h-3 w-3 text-amber-600" />}
                   </h3>
                   <p className="text-muted-foreground text-sm flex-grow">{feature.description}</p>
                   
@@ -405,25 +405,27 @@ const Index = () => {
           ))}
         </motion.div>
         
-        <motion.div 
-          variants={itemVariants}
-          className="glass-morphism mood-journal-card text-left p-5 max-w-lg mx-auto mt-4"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">Unlock Premium Features</h3>
-              <p className="text-sm text-muted-foreground">
-                Ad-free experience, unlimited exercises, and AI-powered insights
-              </p>
+        {!isPremium && (
+          <motion.div 
+            variants={itemVariants}
+            className="glass-morphism mood-journal-card text-left p-5 max-w-lg mx-auto mt-4"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Unlock Premium Features</h3>
+                <p className="text-sm text-muted-foreground">
+                  Ad-free experience, unlimited exercises, and AI-powered insights
+                </p>
+              </div>
+              <Button 
+                onClick={handlePremiumClick}
+                className="bg-gradient-to-r from-primary to-primary/80"
+              >
+                $4.99/month
+              </Button>
             </div>
-            <Button 
-              onClick={handlePremiumClick}
-              className="bg-gradient-to-r from-primary to-primary/80"
-            >
-              $4.99/month
-            </Button>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
         
         <motion.div 
           variants={itemVariants}
@@ -454,9 +456,11 @@ const Index = () => {
         </motion.div>
       </motion.div>
       
-      <div className="fixed bottom-20 left-0 right-0 p-3 bg-gray-50 border-t border-gray-200 text-center text-sm text-gray-500">
-        <p>Free version supported by ethical ads. <span className="text-primary font-medium cursor-pointer" onClick={handlePremiumClick}>Go premium to remove.</span></p>
-      </div>
+      {!isPremium && (
+        <div className="fixed bottom-20 left-0 right-0 p-3 bg-gray-50 border-t border-gray-200 text-center text-sm text-gray-500">
+          <p>Free version supported by ethical ads. <span className="text-primary font-medium cursor-pointer" onClick={handlePremiumClick}>Go premium to remove.</span></p>
+        </div>
+      )}
     </div>
   );
 };

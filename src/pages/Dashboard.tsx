@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import MoodDashboard from '@/components/MoodDashboard';
@@ -33,7 +32,7 @@ interface WeeklyMoodData {
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, isPremium } = useAuth();
   const [entryCount, setEntryCount] = useState(0);
   const [moodDistribution, setMoodDistribution] = useState<MoodDistribution>({
     joy: 0,
@@ -46,7 +45,6 @@ const Dashboard = () => {
   const [weeklyMoodData, setWeeklyMoodData] = useState<WeeklyMoodData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const isPremium = profile?.is_premium || false;
   const maxFreeEntries = 14;
   const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
   
