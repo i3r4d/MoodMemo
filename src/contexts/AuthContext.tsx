@@ -1,175 +1,23 @@
 
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface AuthContextType {
-  session: Session | null;
-  user: User | null;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  isAuthenticated: boolean;
-  profile: UserProfile | null;
-  isPremium: boolean;
-  isAdmin: boolean;
-}
-
-export interface UserProfile {
+interface User {
   id: string;
   email: string;
-  username: string | null;
-  avatar_url: string | null;
-  is_premium: boolean;
-  is_admin: boolean;
-  premium_expires_at: string | null;
+  name?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
+  isPremium: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isPremium, setIsPremium] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setIsPremium(false);
-        setIsAdmin(false);
-        setIsLoading(false);
-      }
-    });
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Getting initial session:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      console.log('Fetching profile for:', userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-      } else if (data) {
-        console.log('Profile data:', data);
-        const profileData = data as UserProfile;
-        setProfile(profileData);
-        
-        // Check if user is premium
-        setIsPremium(
-          profileData.is_premium && 
-          (!profileData.premium_expires_at || new Date(profileData.premium_expires_at) > new Date())
-        );
-        
-        // Check if user is admin
-        setIsAdmin(profileData.is_admin || false);
-      }
-    } catch (error) {
-      console.error('Error in fetchProfile:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-          title: "Sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        throw error;
-      }
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const signUp = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-          title: "Sign up failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        throw error;
-      } else {
-        toast({
-          title: "Sign up successful",
-          description: "Please check your email for verification.",
-        });
-      }
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        isLoading,
-        signIn,
-        signUp,
-        signOut,
-        isAuthenticated: !!user,
-        profile,
-        isPremium,
-        isAdmin,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -177,4 +25,85 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    // Check if there's a user in localStorage (demo purposes)
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setIsLoading(false);
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      // This is a demo implementation
+      const demoUser = {
+        id: '123',
+        email,
+        name: 'Demo User'
+      };
+      setUser(demoUser);
+      localStorage.setItem('user', JSON.stringify(demoUser));
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    setIsLoading(true);
+    try {
+      setUser(null);
+      localStorage.removeItem('user');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string) => {
+    setIsLoading(true);
+    try {
+      // This is a demo implementation
+      const demoUser = {
+        id: '123',
+        email,
+        name
+      };
+      setUser(demoUser);
+      localStorage.setItem('user', JSON.stringify(demoUser));
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      signIn,
+      signOut,
+      signUp,
+      isPremium
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

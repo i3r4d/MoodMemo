@@ -86,7 +86,14 @@ const Index = () => {
   };
   
   if (showOnboarding) {
-    return <AuthScreen onComplete={handleOnboardingComplete} />;
+    return <AuthScreen onComplete={() => {
+      localStorage.setItem('hasVisitedBefore', 'true');
+      setShowOnboarding(false);
+      toast({
+        title: "Welcome to MoodMemo!",
+        description: "Your mental health journal is set up and ready to use.",
+      });
+    }} />;
   }
 
   const features = [
