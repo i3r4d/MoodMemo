@@ -4,7 +4,7 @@ export interface JournalEntry {
   text: string;
   audioUrl?: string | null;
   timestamp: string;
-  mood: 'joy' | 'calm' | 'neutral' | 'sad' | 'stress' | null;
+  mood: MoodType | null;
   moodIntensity?: number;
   tags: string[];
   userId?: string;

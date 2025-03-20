@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { motion } from 'framer-motion';
@@ -22,7 +23,8 @@ import {
   X
 } from 'lucide-react';
 import MoodPicker from '@/components/MoodPicker';
-import { useJournalStorage, JournalEntry, MoodType, Prompt } from '@/hooks/useJournalStorage';
+import useJournalStorage from '@/hooks/useJournalStorage';
+import { JournalEntry, MoodType, Prompt } from '@/types/journal';
 import { format, isToday, isYesterday } from 'date-fns';
 import TextJournal from '@/components/TextJournal';
 import VoiceJournal from '@/components/VoiceJournal';
