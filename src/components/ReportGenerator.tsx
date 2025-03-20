@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -49,10 +48,8 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
   const [timeframe, setTimeframe] = useState('month');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user, profile } = useAuth();
+  const { user, isPremium } = useAuth();
   
-  const isPremium = profile?.is_premium || false;
-
   const handleGenerateReport = async () => {
     if (!user) {
       toast({
@@ -86,7 +83,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
         description: `Generating AI insights report for ${selectedOption.label.toLowerCase()}. This will be ready shortly.`,
       });
       
-      // Calculate date range
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - selectedOption.days);
@@ -98,7 +94,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
         endDate: endDate.toISOString(),
       });
       
-      // Call the edge function with improved error handling
       try {
         console.log('Attempting to call edge function with params:', {
           userId: user.id,
@@ -107,11 +102,8 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           endDate: endDate.toISOString(),
         });
 
-        // First check if the function exists - removing the list function call
-        // which isn't available in the current supabase-js version
         console.log('Calling generate-ai-report function');
 
-        // Add project reference and handle preview environment
         const { data, error: functionError } = await supabase.functions.invoke('generate-ai-report', {
           body: {
             userId: user.id,
@@ -137,7 +129,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
             statusText: functionError.statusText,
           });
           
-          // Handle specific error cases
           if (functionError.message.includes('Function not found')) {
             setError("The report generation service is currently unavailable. Please try again later.");
             toast({
@@ -170,7 +161,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           return;
         }
         
-        // Handle successful report generation
         if (data?.report) {
           toast({
             title: "Report Ready",
@@ -179,7 +169,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           
           console.log('Generated report:', data.report);
           
-          // Navigate to report viewer
           navigate(`/reports/${data.report.id}`);
         } else {
           throw new Error("No report data received");
@@ -207,11 +196,9 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
   };
 
   const handlePremiumClick = () => {
-    // Redirect to settings page for premium upgrade
     navigate('/settings');
   };
 
-  // If in insights view, use a different styling
   const containerClasses = insightsView 
     ? "px-4 py-3 bg-white/80 rounded-lg border border-primary/10 mb-4" 
     : "glass-morphism mood-journal-card space-y-4";
@@ -235,7 +222,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
             </div>
           </div>
           
-          {/* Show premium UI in the preview even for free users */}
           <div className="space-y-4 mt-4 border-t pt-4 opacity-90">
             <p className="text-sm text-muted-foreground italic">
               Preview of premium features:

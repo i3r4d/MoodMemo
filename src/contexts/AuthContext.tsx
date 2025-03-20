@@ -7,13 +7,21 @@ interface User {
   name?: string;
 }
 
+interface Profile {
+  id: string;
+  username?: string;
+  is_premium?: boolean;
+  premium_expires_at?: string;
+}
+
 interface AuthContextType {
   user: User | null;
+  profile: Profile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<void>;
   isPremium: boolean;
 }
 
@@ -33,6 +41,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
 
@@ -40,10 +49,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check if there's a user in localStorage (demo purposes)
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      
+      // Create a demo profile for the user
+      const demoProfile = {
+        id: parsedUser.id,
+        username: parsedUser.name || parsedUser.email.split('@')[0],
+        is_premium: isPremium
+      };
+      setProfile(demoProfile);
     }
     setIsLoading(false);
-  }, []);
+  }, [isPremium]);
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -55,6 +73,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: 'Demo User'
       };
       setUser(demoUser);
+      
+      // Create a demo profile
+      const demoProfile = {
+        id: demoUser.id,
+        username: demoUser.name,
+        is_premium: false
+      };
+      setProfile(demoProfile);
+      
       localStorage.setItem('user', JSON.stringify(demoUser));
     } catch (error) {
       console.error('Sign in error:', error);
@@ -68,22 +95,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       setUser(null);
+      setProfile(null);
       localStorage.removeItem('user');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name?: string) => {
     setIsLoading(true);
     try {
       // This is a demo implementation
       const demoUser = {
         id: '123',
         email,
-        name
+        name: name || 'Demo User'
       };
       setUser(demoUser);
+      
+      // Create a demo profile
+      const demoProfile = {
+        id: demoUser.id,
+        username: demoUser.name,
+        is_premium: false
+      };
+      setProfile(demoProfile);
+      
       localStorage.setItem('user', JSON.stringify(demoUser));
     } catch (error) {
       console.error('Sign up error:', error);
@@ -96,6 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return (
     <AuthContext.Provider value={{
       user,
+      profile,
       isAuthenticated: !!user,
       isLoading,
       signIn,

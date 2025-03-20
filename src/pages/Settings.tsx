@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -30,11 +31,13 @@ import { supabase } from '@/integrations/supabase/client';
 import useJournalStorage from '@/hooks/useJournalStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTheme, Theme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import DeviceConnections from '@/components/DeviceConnections';
 import HealthMetrics from '@/components/HealthMetrics';
 import ReminderManager from '@/components/ReminderManager';
 import { Separator } from "@/components/ui/separator";
+
+type Theme = 'light' | 'dark' | 'system';
 
 const Settings = () => {
   const { localStorageOnly, toggleStoragePreference } = useJournalStorage();
