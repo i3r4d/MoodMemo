@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -115,11 +114,23 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           console.error('Error in edge function response:', data.error);
           setError(data.error);
           
-          // Special message for no entries
+          // Handle specific error cases
           if (data.error.includes('No journal entries found')) {
             toast({
               title: "No Journal Entries Found",
               description: "We couldn't find any journal entries for the selected timeframe. Try a different timeframe or add more entries.",
+              variant: "destructive",
+            });
+          } else if (data.error.includes('Too many report requests')) {
+            toast({
+              title: "Rate Limit Reached",
+              description: "You've reached the limit for report generation. Please wait 24 hours before generating another report.",
+              variant: "destructive",
+            });
+          } else if (data.error.includes('Start date must be before end date')) {
+            toast({
+              title: "Invalid Date Range",
+              description: "The selected date range is invalid. Please try again.",
               variant: "destructive",
             });
           } else {
@@ -133,15 +144,19 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
         }
         
         // Handle successful report generation
-        toast({
-          title: "Report Ready",
-          description: "Your AI insights report has been generated and is ready to view.",
-        });
-        
-        console.log('Generated report:', data.report);
-        
-        // Auto-navigate to a report viewer would be ideal (future enhancement)
-        // navigate(`/reports/${data.report.id}`);
+        if (data?.report) {
+          toast({
+            title: "Report Ready",
+            description: "Your AI insights report has been generated and is ready to view.",
+          });
+          
+          console.log('Generated report:', data.report);
+          
+          // Navigate to report viewer
+          navigate(`/reports/${data.report.id}`);
+        } else {
+          throw new Error("No report data received");
+        }
       } catch (functionCallError) {
         console.error('Error calling edge function:', functionCallError);
         setError("Unable to connect to the report generation service. Please try again later.");
