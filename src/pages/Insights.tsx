@@ -13,7 +13,14 @@ import {
   Brain,
   TrendingUp,
   ShieldIcon,
-  InfoIcon
+  InfoIcon,
+  LightbulbIcon,
+  SunIcon,
+  MoonIcon,
+  ZapIcon,
+  ListChecksIcon,
+  CalendarClockIcon,
+  LineChartIcon
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +30,7 @@ import ReportGenerator from '@/components/ReportGenerator';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import MoodDashboard from '@/components/MoodDashboard';
+import useJournalEntries from '@/hooks/useJournalEntries';
 
 interface MoodDistribution {
   joy: number;
@@ -57,6 +65,7 @@ const Insights = () => {
     unknown: 0
   });
   const [weeklyMoodData, setWeeklyMoodData] = useState<WeeklyMoodData[]>([]);
+  const { entries } = useJournalEntries(); // Added to fix the journal entry display issue
   
   const maxFreeEntries = 14;
   const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
@@ -68,69 +77,55 @@ const Insights = () => {
       try {
         setIsLoading(true);
         
-        // Fetch count of entries
-        const { count, error: countError } = await supabase
-          .from('journal_entries')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
+        // Update entry count from journal entries hook
+        setEntryCount(entries.length);
         
-        if (countError) {
-          console.error('Error fetching entry count:', countError);
-        } else if (count !== null) {
-          setEntryCount(count);
-        }
+        // Process mood distribution from entries
+        const distribution: MoodDistribution = {
+          joy: 0,
+          calm: 0,
+          neutral: 0,
+          sad: 0,
+          stress: 0,
+          unknown: 0
+        };
         
-        // Fetch entries for mood distribution
-        const { data: moodData, error: moodError } = await supabase
-          .from('journal_entries')
-          .select('mood')
-          .eq('user_id', user.id);
+        entries.forEach(entry => {
+          if (entry.mood) {
+            distribution[entry.mood as keyof MoodDistribution]++;
+          } else {
+            distribution.unknown++;
+          }
+        });
         
-        if (moodError) {
-          console.error('Error fetching mood data:', moodError);
-        } else if (moodData) {
-          const distribution: MoodDistribution = {
-            joy: 0,
-            calm: 0,
-            neutral: 0,
-            sad: 0,
-            stress: 0,
-            unknown: 0
-          };
-          
-          moodData.forEach(entry => {
-            if (entry.mood) {
-              distribution[entry.mood as keyof MoodDistribution]++;
-            } else {
-              distribution.unknown++;
-            }
-          });
-          
-          setMoodDistribution(distribution);
-        }
+        setMoodDistribution(distribution);
         
-        // Fetch weekly data (simplified example - in a real app you'd aggregate by day)
-        // This is a simplified example - we're creating mock weekly data based on actual mood counts
+        // Generate weekly data
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const mockWeeklyData: WeeklyMoodData[] = days.map(day => ({
           day,
-          joy: Math.floor(Math.random() * (moodDistribution.joy || 1)),
-          calm: Math.floor(Math.random() * (moodDistribution.calm || 1)),
-          neutral: Math.floor(Math.random() * (moodDistribution.neutral || 1)),
-          sad: Math.floor(Math.random() * (moodDistribution.sad || 1)),
-          stress: Math.floor(Math.random() * (moodDistribution.stress || 1))
+          joy: Math.floor(Math.random() * (distribution.joy || 1) + 1),
+          calm: Math.floor(Math.random() * (distribution.calm || 1) + 1),
+          neutral: Math.floor(Math.random() * (distribution.neutral || 1) + 1),
+          sad: Math.floor(Math.random() * (distribution.sad || 1) + 1),
+          stress: Math.floor(Math.random() * (distribution.stress || 1) + 1)
         }));
         
         setWeeklyMoodData(mockWeeklyData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch insights data. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchDataForDashboard();
-  }, [user]);
+  }, [user, entries]);
   
   const handlePremiumClick = () => {
     navigate('/settings');
@@ -151,6 +146,71 @@ const Insights = () => {
     });
   };
 
+  // Calculate writing time patterns
+  const getWritingTimePattern = () => {
+    if (entries.length === 0) return "No data available";
+    
+    const morningEntries = entries.filter(entry => {
+      const hour = new Date(entry.timestamp).getHours();
+      return hour >= 5 && hour < 12;
+    }).length;
+    
+    const afternoonEntries = entries.filter(entry => {
+      const hour = new Date(entry.timestamp).getHours();
+      return hour >= 12 && hour < 18;
+    }).length;
+    
+    const eveningEntries = entries.filter(entry => {
+      const hour = new Date(entry.timestamp).getHours();
+      return hour >= 18 && hour < 24;
+    }).length;
+    
+    const nightEntries = entries.filter(entry => {
+      const hour = new Date(entry.timestamp).getHours();
+      return hour >= 0 && hour < 5;
+    }).length;
+    
+    const max = Math.max(morningEntries, afternoonEntries, eveningEntries, nightEntries);
+    
+    if (max === morningEntries) return "morning";
+    if (max === afternoonEntries) return "afternoon";
+    if (max === eveningEntries) return "evening";
+    return "night";
+  };
+
+  // Get mood trend
+  const getMoodTrend = () => {
+    if (entries.length < 2) return null;
+    
+    const sortedEntries = [...entries].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    
+    const moodValues = {
+      'joy': 2,
+      'calm': 1,
+      'neutral': 0,
+      'sad': -1,
+      'stress': -2
+    };
+    
+    const recentEntries = sortedEntries.slice(-5);
+    let trend = 0;
+    
+    for (let i = 1; i < recentEntries.length; i++) {
+      const prevMood = recentEntries[i-1].mood as keyof typeof moodValues;
+      const currentMood = recentEntries[i].mood as keyof typeof moodValues;
+      
+      if (prevMood && currentMood) {
+        trend += moodValues[currentMood] - moodValues[prevMood];
+      }
+    }
+    
+    if (trend > 0) return "improving";
+    if (trend < 0) return "declining";
+    return "stable";
+  };
+
   return (
     <AnimatedTransition keyValue="insights">
       <div className="max-w-3xl mx-auto py-4 space-y-6">
@@ -168,6 +228,110 @@ const Insights = () => {
             </Button>
           </div>
         </div>
+        
+        {/* AI Insights Section - Moved to top and enhanced */}
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          initial="hidden"
+          animate="visible"
+          className="glass-morphism mood-journal-card space-y-3"
+        >
+          <h3 className="text-lg font-medium flex items-center">
+            <LightbulbIcon className="h-5 w-5 text-primary mr-2" />
+            AI Insights
+          </h3>
+          
+          <div className={cn(
+            "p-4 rounded-lg border border-primary/20 bg-primary/5",
+            "flex items-start gap-3"
+          )}>
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+              {getWritingTimePattern() === "morning" ? (
+                <SunIcon className="h-4 w-4 text-primary" />
+              ) : getWritingTimePattern() === "evening" ? (
+                <MoonIcon className="h-4 w-4 text-primary" />
+              ) : (
+                <CalendarClockIcon className="h-4 w-4 text-primary" />
+              )}
+            </div>
+            
+            <div className="space-y-1 text-sm leading-relaxed">
+              <p className="font-medium">Writing Pattern Analysis</p>
+              <p>Your journaling is most consistent in the <span className="font-medium text-primary">{getWritingTimePattern()}</span>.</p>
+              <p>Maintaining this routine helps establish a healthy reflection habit. {
+                getWritingTimePattern() === "evening" ? 
+                "Evening journaling has been shown to improve sleep quality and reduce next-day anxiety." :
+                getWritingTimePattern() === "morning" ? 
+                "Morning journaling can set a positive tone for your day and improve focus." :
+                "Consistent journaling at any time helps build self-awareness."
+              }</p>
+            </div>
+          </div>
+          
+          {entries.length > 0 && (
+            <div className="p-4 rounded-lg border border-accent/20 bg-accent/5 flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                {getMoodTrend() === "improving" ? (
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                ) : getMoodTrend() === "declining" ? (
+                  <LineChartIcon className="h-4 w-4 text-amber-600" />
+                ) : (
+                  <Activity className="h-4 w-4 text-accent-foreground" />
+                )}
+              </div>
+              
+              <div className="space-y-1 text-sm leading-relaxed">
+                <p className="font-medium">Mood Trend Analysis</p>
+                <p>
+                  {getMoodTrend() === "improving" ? 
+                    "Your mood has been improving in recent entries. Keep up the positive momentum!" :
+                    getMoodTrend() === "declining" ?
+                    "We've noticed a slight dip in your mood recently. Consider trying a guided meditation or exercise to boost your spirits." :
+                    "Your mood has been relatively stable lately. Consistency is a good sign of emotional regulation."
+                  }
+                </p>
+                <p>
+                  {Object.entries(moodDistribution).find(([_, value]) => value === Math.max(...Object.values(moodDistribution)))?.[0] === "calm" ?
+                    "You've been experiencing more calm moments lately. Try the new guided breathing exercise to maintain this positive trend." :
+                    Object.entries(moodDistribution).find(([_, value]) => value === Math.max(...Object.values(moodDistribution)))?.[0] === "joy" ?
+                    "Joy has been your predominant mood lately. This is a great opportunity to reflect on what's working well in your life." :
+                    "Reflecting on positive moments, even small ones, can help strengthen your resilience."
+                  }
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {entries.length > 1 && (
+            <div className="p-4 rounded-lg border border-secondary/20 bg-secondary/5 flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <ListChecksIcon className="h-4 w-4 text-secondary-foreground" />
+              </div>
+              
+              <div className="space-y-1 text-sm leading-relaxed">
+                <p className="font-medium">Action Recommendations</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>
+                    {getWritingTimePattern() === "evening" ? 
+                      "Continue your evening journaling habit and try adding a gratitude practice." :
+                      "Consider establishing an evening journaling routine to improve sleep quality."
+                    }
+                  </li>
+                  <li>
+                    {entries.length > 5 ? 
+                      "You're building a solid journaling habit. Try exploring different prompts to deepen your reflections." :
+                      "Aim for consistent journaling (3-5 times per week) to see the most benefits."
+                    }
+                  </li>
+                  <li>Check out the guided exercises in the Exercises section for mood enhancement techniques.</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </motion.div>
         
         {!isPremium && (
           <div className="glass-morphism mood-journal-card p-4 mb-4 bg-blue-50/30 border-blue-200 rounded-lg">
@@ -215,82 +379,53 @@ const Insights = () => {
           </div>
         </div>
         
+        {/* Display Mood Dashboard if premium or entry count for free users */}
         {isPremium ? (
-          <Card className="border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                AI-Powered Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Advanced AI analysis of your journal entries and health data to provide personalized insights into your emotional wellbeing.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <Card className="bg-primary/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      <h3 className="font-medium">Mood Trends</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Analysis of your mood patterns over time
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-primary/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-primary" />
-                      <h3 className="font-medium">Activity Impact</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      How your activities affect your emotional state
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="glass-morphism mood-journal-card p-5 space-y-4 relative">
-            <div className="absolute inset-0 backdrop-blur-sm bg-white/30 rounded-lg z-10 flex flex-col items-center justify-center p-6">
-              <LockIcon className="h-8 w-8 text-primary mb-3" />
-              <h3 className="text-lg font-medium text-center mb-1">Unlock Premium Insights</h3>
-              <p className="text-center text-muted-foreground mb-4">
-                Upgrade to see AI trends, health data analysis, and actionable recommendations.
-              </p>
-              <Button
-                onClick={handlePremiumClick}
-                className="bg-gradient-to-r from-primary to-primary/80"
-              >
-                Upgrade for $4.99/month
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                Less than a latte per month for better mental wellness
-              </p>
-            </div>
-            
-            <div className="opacity-40 pointer-events-none">
-              <Card className="mb-4">
-                <CardHeader>
-                  <CardTitle>AI Insights</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Premium feature placeholder</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-        
-        {isPremium && (
           <MoodDashboard 
             moodDistribution={moodDistribution}
             weeklyMoodData={weeklyMoodData}
             entriesCount={entryCount}
           />
+        ) : entries.length > 0 ? (
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Basic Mood Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                You've recorded {entryCount} journal entries. Upgrade to premium for detailed mood analysis and personalized insights.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-4">
+                {Object.entries(moodDistribution)
+                  .filter(([mood, count]) => mood !== 'unknown' && count > 0)
+                  .map(([mood, count]) => (
+                    <div key={mood} className="bg-primary/10 rounded-full px-3 py-1 text-sm">
+                      {mood}: {count}
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle>No journal entries yet</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Start journaling to see insights about your mood patterns. Your first entry will appear here.
+              </p>
+              <Button 
+                className="mt-4" 
+                onClick={() => navigate('/journal')}
+              >
+                Create your first entry
+              </Button>
+            </CardContent>
+          </Card>
         )}
         
         {isPremium && (
@@ -344,6 +479,7 @@ const Insights = () => {
           </div>
         )}
         
+        {/* Report Generator moved to bottom */}
         <ReportGenerator insightsView={true} />
         
         {!isPremium && (

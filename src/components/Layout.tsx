@@ -10,7 +10,7 @@ import {
   BookIcon, 
   SettingsIcon, 
   DumbbellIcon,
-  BrainCircuitIcon
+  LightbulbIcon // Changed from BrainCircuitIcon to LightbulbIcon for Insights
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -38,7 +38,7 @@ const Layout = ({ children }: LayoutProps) => {
     {
       href: '/insights',
       label: 'Insights',
-      icon: BrainCircuitIcon,
+      icon: LightbulbIcon, // Changed icon here
       active: location.pathname === '/insights'
     },
     {
