@@ -61,6 +61,15 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       });
       return;
     }
+
+    if (!isPremium) {
+      toast({
+        title: "Premium Required",
+        description: "This feature requires a premium subscription.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       setIsGenerating(true);
@@ -90,6 +99,22 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       
       // Call the edge function with improved error handling
       try {
+        console.log('Attempting to call edge function with params:', {
+          userId: user.id,
+          timeframe: selectedOption.label,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
+
+        // First check if the function exists
+        const { data: functions, error: functionsError } = await supabase.functions.list();
+        console.log('Available functions:', functions);
+
+        if (functionsError) {
+          console.error('Error listing functions:', functionsError);
+          throw new Error('Failed to check available functions');
+        }
+
         const { data, error: functionError } = await supabase.functions.invoke('generate-ai-report', {
           body: {
             userId: user.id,
@@ -97,46 +122,42 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
           },
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
         
-        if (functionError) {
-          console.error('Edge function error:', functionError);
-          setError(functionError.message || "An error occurred while generating your report");
-          toast({
-            title: "Report Generation Failed",
-            description: functionError.message || "An error occurred while generating your report.",
-            variant: "destructive",
-          });
-          return;
-        }
+        console.log('Edge function response:', { data, error: functionError });
         
-        if (data?.error) {
-          console.error('Error in edge function response:', data.error);
-          setError(data.error);
+        if (functionError) {
+          console.error('Edge function error details:', {
+            message: functionError.message,
+            name: functionError.name,
+            stack: functionError.stack,
+            status: functionError.status,
+            statusText: functionError.statusText,
+          });
           
           // Handle specific error cases
-          if (data.error.includes('No journal entries found')) {
+          if (functionError.message.includes('Function not found')) {
+            setError("The report generation service is currently unavailable. Please try again later.");
             toast({
-              title: "No Journal Entries Found",
-              description: "We couldn't find any journal entries for the selected timeframe. Try a different timeframe or add more entries.",
+              title: "Service Unavailable",
+              description: "The report generation service is currently unavailable. Please try again later.",
               variant: "destructive",
             });
-          } else if (data.error.includes('Too many report requests')) {
+          } else if (functionError.message.includes('Unauthorized')) {
+            setError("Your session has expired. Please log in again.");
             toast({
-              title: "Rate Limit Reached",
-              description: "You've reached the limit for report generation. Please wait 24 hours before generating another report.",
-              variant: "destructive",
-            });
-          } else if (data.error.includes('Start date must be before end date')) {
-            toast({
-              title: "Invalid Date Range",
-              description: "The selected date range is invalid. Please try again.",
+              title: "Session Expired",
+              description: "Your session has expired. Please log in again.",
               variant: "destructive",
             });
           } else {
+            setError(functionError.message || "An error occurred while generating your report");
             toast({
               title: "Report Generation Failed",
-              description: data.error || "An error occurred while generating your report.",
+              description: functionError.message || "An error occurred while generating your report.",
               variant: "destructive",
             });
           }
