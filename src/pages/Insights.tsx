@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -31,6 +30,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import MoodDashboard from '@/components/MoodDashboard';
 import useJournalEntries from '@/hooks/useJournalEntries';
+import { cn } from '@/lib/utils';
 
 interface MoodDistribution {
   joy: number;
@@ -65,8 +65,8 @@ const Insights = () => {
     unknown: 0
   });
   const [weeklyMoodData, setWeeklyMoodData] = useState<WeeklyMoodData[]>([]);
-  const { entries } = useJournalEntries(); // Added to fix the journal entry display issue
-  
+  const { entries } = useJournalEntries();
+
   const maxFreeEntries = 14;
   const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
 
@@ -77,10 +77,8 @@ const Insights = () => {
       try {
         setIsLoading(true);
         
-        // Update entry count from journal entries hook
         setEntryCount(entries.length);
         
-        // Process mood distribution from entries
         const distribution: MoodDistribution = {
           joy: 0,
           calm: 0,
@@ -100,7 +98,6 @@ const Insights = () => {
         
         setMoodDistribution(distribution);
         
-        // Generate weekly data
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const mockWeeklyData: WeeklyMoodData[] = days.map(day => ({
           day,
@@ -146,7 +143,6 @@ const Insights = () => {
     });
   };
 
-  // Calculate writing time patterns
   const getWritingTimePattern = () => {
     if (entries.length === 0) return "No data available";
     
@@ -178,7 +174,6 @@ const Insights = () => {
     return "night";
   };
 
-  // Get mood trend
   const getMoodTrend = () => {
     if (entries.length < 2) return null;
     
@@ -229,7 +224,6 @@ const Insights = () => {
           </div>
         </div>
         
-        {/* AI Insights Section - Moved to top and enhanced */}
         <motion.div 
           variants={{
             hidden: { opacity: 0, y: 20 },
@@ -379,7 +373,6 @@ const Insights = () => {
           </div>
         </div>
         
-        {/* Display Mood Dashboard if premium or entry count for free users */}
         {isPremium ? (
           <MoodDashboard 
             moodDistribution={moodDistribution}
@@ -479,7 +472,6 @@ const Insights = () => {
           </div>
         )}
         
-        {/* Report Generator moved to bottom */}
         <ReportGenerator insightsView={true} />
         
         {!isPremium && (
