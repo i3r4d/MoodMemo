@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -33,7 +32,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/contexts/ThemeContext';
 import DeviceConnections from '@/components/DeviceConnections';
-import HealthMetrics from '@/components/HealthMetrics';
 import ReminderManager from '@/components/ReminderManager';
 import { Separator } from "@/components/ui/separator";
 
@@ -219,7 +217,6 @@ const Settings = () => {
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="devices">Devices</TabsTrigger>
-            <TabsTrigger value="health">Health Data</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
           </TabsList>
 
@@ -293,10 +290,37 @@ const Settings = () => {
 
           <TabsContent value="devices" className="space-y-4">
             <DeviceConnections />
-          </TabsContent>
-
-          <TabsContent value="health" className="space-y-4">
-            <HealthMetrics />
+            
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle>Health Data Benefits</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  By connecting your fitness tracker or smartwatch, you'll unlock powerful insights:
+                </p>
+                <ul className="space-y-2 list-disc pl-5">
+                  <li>Correlate your mood with your physical activity and sleep patterns</li>
+                  <li>Receive personalized recommendations based on your health metrics</li>
+                  <li>Track how different activities impact your emotional wellbeing</li>
+                  <li>Get AI-powered insights that combine journal entries with health data</li>
+                </ul>
+                {!isPremium && (
+                  <div className="mt-4 p-4 border rounded-lg bg-primary/5">
+                    <p className="font-medium text-primary">Premium Feature</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Health data integration is available with a premium subscription.
+                    </p>
+                    <Button 
+                      onClick={handleSubscribe} 
+                      className="mt-3"
+                    >
+                      Upgrade Now
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="account" className="space-y-4">

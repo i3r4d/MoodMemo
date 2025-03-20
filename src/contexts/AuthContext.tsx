@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
+  const [isPremium, setIsPremium] = useState(true); // Changed to true for testing purposes
 
   useEffect(() => {
     // Check if there's a user in localStorage (demo purposes)
@@ -56,12 +56,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const demoProfile = {
         id: parsedUser.id,
         username: parsedUser.name || parsedUser.email.split('@')[0],
-        is_premium: isPremium
+        is_premium: true // Force premium for testing
       };
       setProfile(demoProfile);
+      setIsPremium(true); // Force premium for testing
     }
     setIsLoading(false);
-  }, [isPremium]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -78,9 +79,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const demoProfile = {
         id: demoUser.id,
         username: demoUser.name,
-        is_premium: false
+        is_premium: true // Force premium for testing
       };
       setProfile(demoProfile);
+      setIsPremium(true); // Force premium for testing
       
       localStorage.setItem('user', JSON.stringify(demoUser));
     } catch (error) {
@@ -96,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setUser(null);
       setProfile(null);
+      setIsPremium(false);
       localStorage.removeItem('user');
     } finally {
       setIsLoading(false);
@@ -117,9 +120,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const demoProfile = {
         id: demoUser.id,
         username: demoUser.name,
-        is_premium: false
+        is_premium: true // Force premium for testing
       };
       setProfile(demoProfile);
+      setIsPremium(true); // Force premium for testing
       
       localStorage.setItem('user', JSON.stringify(demoUser));
     } catch (error) {

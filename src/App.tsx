@@ -10,6 +10,7 @@ import Journal from '@/pages/Journal';
 import Dashboard from '@/pages/Dashboard';
 import Settings from '@/pages/Settings';
 import Exercises from '@/pages/Exercises';
+import Insights from '@/pages/Insights';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Onboarding from '@/pages/Onboarding';
@@ -51,6 +52,16 @@ const App: React.FC = () => {
                     <ProtectedRoute>
                       <Layout>
                         <Dashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/insights"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Insights />
                       </Layout>
                     </ProtectedRoute>
                   }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { motion } from 'framer-motion';
@@ -20,7 +19,9 @@ import {
   ImageIcon,
   TagIcon,
   Plus,
-  X
+  X,
+  Watch,
+  HeartPulse
 } from 'lucide-react';
 import MoodPicker from '@/components/MoodPicker';
 import useJournalStorage from '@/hooks/useJournalStorage';
@@ -36,11 +37,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import GuidedPrompts from '@/components/GuidedPrompts';
 import SentimentAnalysis from '@/components/SentimentAnalysis';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 type JournalMode = 'list' | 'create-text' | 'create-voice';
 
@@ -68,6 +69,7 @@ const Journal = () => {
     summary: string;
   } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (mode === 'create-text' || mode === 'create-voice') {
@@ -717,6 +719,84 @@ const Journal = () => {
     <AnimatedTransition keyValue="journal">
       <div className="max-w-3xl mx-auto py-4">
         {renderContent()}
+        
+        {isPremium ? (
+          <Card className="mt-8 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HeartPulse className="h-5 w-5 text-primary" />
+                Connect Your Health Devices
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="md:w-3/4">
+                  <p className="text-muted-foreground mb-4">
+                    Take your journaling to the next level by connecting your smartwatch or fitness tracker. Sync health data to gain deeper insights into how your physical wellbeing affects your mood.
+                  </p>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-start gap-2">
+                      <div className="bg-primary/10 p-1 rounded-full mt-0.5">
+                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <p className="text-sm">See how your sleep quality affects your next-day mood</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="bg-primary/10 p-1 rounded-full mt-0.5">
+                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <p className="text-sm">Identify how exercise impacts your emotional wellbeing</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="bg-primary/10 p-1 rounded-full mt-0.5">
+                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <p className="text-sm">Get deeper AI insights combining health data and journal entries</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => navigate('/settings?tab=devices')}
+                    className="mt-2"
+                  >
+                    <Watch className="h-4 w-4 mr-2" />
+                    Connect Device
+                  </Button>
+                </div>
+                <div className="md:w-1/4 flex justify-center items-center">
+                  <div className="bg-primary/5 rounded-full p-6">
+                    <Watch className="h-16 w-16 text-primary/40" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mt-8 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HeartPulse className="h-5 w-5 text-primary" />
+                Premium Health Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Upgrade to premium to connect your smartwatch or fitness tracker and gain deeper insights into how your physical wellbeing affects your mood.
+              </p>
+              <Button 
+                onClick={() => navigate('/settings')}
+                className="mt-2"
+              >
+                Upgrade to Premium
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AnimatedTransition>
   );
