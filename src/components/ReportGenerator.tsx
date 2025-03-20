@@ -115,7 +115,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           throw new Error('Failed to check available functions');
         }
 
-        // Add project reference to the function call
+        // Add project reference and handle preview environment
         const { data, error: functionError } = await supabase.functions.invoke('generate-ai-report', {
           body: {
             userId: user.id,
@@ -125,7 +125,8 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           },
           headers: {
             'Content-Type': 'application/json',
-            'X-Project-Reference': 'dxolkbecfzspmoiszyvg'
+            'X-Project-Reference': 'dxolkbecfzspmoiszyvg',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
           },
         });
         
