@@ -1,11 +1,28 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { JournalEntry as JournalEntryType } from '@/hooks/useJournalEntries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import SentimentAnalysis from './SentimentAnalysis';
+
+// Update the JournalEntry type to match what's used in the component
+interface JournalEntryType {
+  id: string;
+  text: string;
+  audioUrl?: string | null;
+  timestamp: string;
+  mood: 'joy' | 'calm' | 'neutral' | 'sad' | 'stress' | null;
+  tags?: string[];
+  sentimentAnalysis?: {
+    sentiment: 'positive' | 'neutral' | 'negative';
+    confidence: number;
+    emotions: string[];
+    suggestions: string[];
+    summary: string;
+  } | null;
+}
 
 interface JournalEntryProps {
   entry: JournalEntryType;
@@ -51,7 +68,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ entry, onDelete }) => {
         </CardTitle>
         <div className="flex items-center space-x-2">
           <Badge variant="outline">{entry.mood}</Badge>
-          {entry.tags.map((tag) => (
+          {entry.tags && entry.tags.map((tag) => (
             <Badge key={tag} variant="secondary">
               {tag}
             </Badge>

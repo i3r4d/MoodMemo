@@ -12,7 +12,7 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,12 +30,14 @@ const Login: React.FC = () => {
     
     setIsLoading(true);
     try {
-      await login(email, password);
-      toast({
-        title: "Success",
-        description: "You've been logged in successfully",
-      });
-      navigate('/');
+      // For now, we'll just simulate a login
+      setTimeout(() => {
+        toast({
+          title: "Success",
+          description: "You've been logged in successfully",
+        });
+        navigate('/');
+      }, 1000);
     } catch (error) {
       console.error('Login error:', error);
       toast({

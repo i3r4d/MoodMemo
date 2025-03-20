@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -106,14 +107,9 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           endDate: endDate.toISOString(),
         });
 
-        // First check if the function exists
-        const { data: functions, error: functionsError } = await supabase.functions.list();
-        console.log('Available functions:', functions);
-
-        if (functionsError) {
-          console.error('Error listing functions:', functionsError);
-          throw new Error('Failed to check available functions');
-        }
+        // First check if the function exists - removing the list function call
+        // which isn't available in the current supabase-js version
+        console.log('Calling generate-ai-report function');
 
         // Add project reference and handle preview environment
         const { data, error: functionError } = await supabase.functions.invoke('generate-ai-report', {
