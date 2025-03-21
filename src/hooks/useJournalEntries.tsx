@@ -37,7 +37,8 @@ const useJournalEntries = () => {
             console.error('Error loading entries from Supabase:', error);
             // Fall back to localStorage
             loadFromLocalStorage();
-          } else if (data) {
+          } else if (data && data.length > 0) {
+            console.log('Loaded entries from Supabase:', data);
             // Format the data
             const formattedEntries = data.map(entry => ({
               id: entry.id,
@@ -47,6 +48,9 @@ const useJournalEntries = () => {
               mood: entry.mood as JournalEntry['mood']
             }));
             setEntries(formattedEntries);
+          } else {
+            console.log('No entries found in Supabase, checking localStorage');
+            loadFromLocalStorage();
           }
         } else {
           // If not logged in, load from localStorage
@@ -64,10 +68,16 @@ const useJournalEntries = () => {
       try {
         const savedEntries = localStorage.getItem(STORAGE_KEY);
         if (savedEntries) {
-          setEntries(JSON.parse(savedEntries));
+          const parsedEntries = JSON.parse(savedEntries);
+          console.log('Loaded entries from localStorage:', parsedEntries);
+          setEntries(parsedEntries);
+        } else {
+          console.log('No entries found in localStorage');
+          setEntries([]);
         }
       } catch (error) {
         console.error('Error loading from localStorage:', error);
+        setEntries([]);
       }
     };
 
@@ -83,42 +93,60 @@ const useJournalEntries = () => {
 
   // Add a new entry
   const addEntry = useCallback(async (entry: Omit<JournalEntry, 'id'>) => {
-    const newId = Date.now().toString();
-    const newEntry: JournalEntry = {
-      ...entry,
-      id: newId,
-    };
+    try {
+      const newId = Date.now().toString();
+      const newEntry: JournalEntry = {
+        ...entry,
+        id: newId,
+      };
 
-    // Add to local state first for immediate UI update
-    setEntries(prevEntries => [newEntry, ...prevEntries]);
+      console.log('Adding new entry:', newEntry);
 
-    // If user is authenticated, also save to Supabase
-    if (user) {
-      try {
-        const { error } = await supabase
-          .from('journal_entries')
-          .insert([{
-            user_id: user.id,
-            text: entry.text,
-            audio_url: entry.audioUrl,
-            timestamp: entry.timestamp,
-            mood: entry.mood
-          }]);
-        
-        if (error) {
-          console.error('Error saving journal entry:', error);
-          toast({
-            title: "Save Error",
-            description: "Your entry was saved locally but failed to sync to the cloud.",
-            variant: "destructive",
-          });
+      // Add to local state first for immediate UI update
+      setEntries(prevEntries => [newEntry, ...prevEntries]);
+
+      // If user is authenticated, also save to Supabase
+      if (user) {
+        try {
+          console.log('Saving entry to Supabase for user:', user.id);
+          const { error, data } = await supabase
+            .from('journal_entries')
+            .insert([{
+              user_id: user.id,
+              text: entry.text,
+              audio_url: entry.audioUrl,
+              timestamp: entry.timestamp,
+              mood: entry.mood
+            }])
+            .select();
+          
+          if (error) {
+            console.error('Error saving journal entry to Supabase:', error);
+            toast({
+              title: "Save Error",
+              description: "Your entry was saved locally but failed to sync to the cloud.",
+              variant: "destructive",
+            });
+          } else {
+            console.log('Entry saved successfully to Supabase:', data);
+          }
+        } catch (error) {
+          console.error('Exception in saving to Supabase:', error);
         }
-      } catch (error) {
-        console.error('Error in add entry:', error);
+      } else {
+        console.log('User not authenticated, entry saved only locally');
       }
-    }
 
-    return newId;
+      return newId;
+    } catch (error) {
+      console.error('Error in add entry:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your journal entry. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    }
   }, [user, toast]);
 
   // Update an existing entry

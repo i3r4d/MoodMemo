@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -71,6 +72,7 @@ const Insights = () => {
   const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
 
   useEffect(() => {
+    console.log("Insights page loaded, entries count:", entries.length);
     const fetchDataForDashboard = async () => {
       if (!user) return;
       
@@ -78,6 +80,7 @@ const Insights = () => {
         setIsLoading(true);
         
         setEntryCount(entries.length);
+        console.log("Setting entry count to:", entries.length);
         
         const distribution: MoodDistribution = {
           joy: 0,
@@ -96,6 +99,7 @@ const Insights = () => {
           }
         });
         
+        console.log("Calculated mood distribution:", distribution);
         setMoodDistribution(distribution);
         
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -122,7 +126,7 @@ const Insights = () => {
     };
     
     fetchDataForDashboard();
-  }, [user, entries]);
+  }, [user, entries, toast]);
   
   const handlePremiumClick = () => {
     navigate('/settings');
