@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { JournalEntry, MoodType } from '@/types/journal';
 
 const LOCAL_STORAGE_KEY = 'moodmemo_journal_entries';
+const STORAGE_PREFERENCE_KEY = 'moodmemo_local_storage_only';
 
 interface SupabaseJournalEntry {
   id: string;
@@ -34,79 +35,109 @@ const mapSupabaseToJournalEntry = (entry: SupabaseJournalEntry): JournalEntry =>
 const useJournalStorage = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const [localStorageOnly, setLocalStorageOnly] = useState(() => {
+    const preference = localStorage.getItem(STORAGE_PREFERENCE_KEY);
+    return preference ? preference === 'true' : false;
+  });
+  const { user, isPremium } = useAuth();
   const { toast } = useToast();
 
+  // Toggle storage preference
+  const toggleStoragePreference = useCallback((value: boolean) => {
+    setLocalStorageOnly(value);
+    localStorage.setItem(STORAGE_PREFERENCE_KEY, value.toString());
+    
+    // If toggling from cloud to local only, sync cloud data to local
+    if (value && user && isPremium) {
+      // Just load the data again with the updated preference
+      loadEntries();
+      toast({
+        title: 'Local Storage Enabled',
+        description: 'Your entries will now be stored only on this device.',
+      });
+    }
+    // If toggling from local to cloud and user is premium, sync local to cloud
+    else if (!value && user && isPremium) {
+      // We'll sync on next save operation
+      toast({
+        title: 'Cloud Storage Enabled',
+        description: 'Your entries will now be synced across all your devices.',
+      });
+      loadEntries();
+    }
+  }, [user, isPremium]);
+
   // Load entries from localStorage or Supabase on mount
-  useEffect(() => {
-    const loadEntries = async () => {
-      try {
-        setIsLoading(true);
-        console.log('Loading entries, user:', user);
-        
-        // Try to load from local storage first as a fallback
-        const savedEntries = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let parsedEntries: JournalEntry[] = [];
-        
-        if (savedEntries) {
-          try {
-            parsedEntries = JSON.parse(savedEntries);
-            console.log('Loaded entries from localStorage:', parsedEntries);
-          } catch (e) {
-            console.error('Error parsing localStorage entries:', e);
-          }
+  const loadEntries = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      console.log('Loading entries, user:', user);
+      
+      // Try to load from local storage first as a fallback
+      const savedEntries = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let parsedEntries: JournalEntry[] = [];
+      
+      if (savedEntries) {
+        try {
+          parsedEntries = JSON.parse(savedEntries);
+          console.log('Loaded entries from localStorage:', parsedEntries);
+        } catch (e) {
+          console.error('Error parsing localStorage entries:', e);
         }
+      }
+      
+      if (user && isPremium && !localStorageOnly) {
+        // Try to load from Supabase
+        console.log('Attempting to load entries from Supabase for user:', user.id);
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .select('id, text, audio_url, timestamp, mood, tags, user_id')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: false });
         
-        if (user) {
-          // Try to load from Supabase
-          console.log('Attempting to load entries from Supabase for user:', user.id);
-          const { data, error } = await supabase
-            .from('journal_entries')
-            .select('id, text, audio_url, timestamp, mood, tags')
-            .eq('user_id', user.id)
-            .order('timestamp', { ascending: false });
+        if (error) {
+          console.error('Error loading entries from Supabase:', error);
+          // Use local storage entries as fallback
+          setEntries(parsedEntries);
+        } else if (data && data.length > 0) {
+          console.log('Loaded entries from Supabase:', data);
           
-          if (error) {
-            console.error('Error loading entries from Supabase:', error);
-            // Use local storage entries as fallback
-            setEntries(parsedEntries);
-          } else if (data && data.length > 0) {
-            console.log('Loaded entries from Supabase:', data);
-            
-            // Format the data
-            const formattedEntries = data.map(entry => mapSupabaseToJournalEntry(entry));
-            setEntries(formattedEntries);
-            
-            // Update local storage with the latest data
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formattedEntries));
-          } else {
-            console.log('No entries found in Supabase, using localStorage');
-            setEntries(parsedEntries);
-          }
+          // Format the data - ensure each entry has all required properties including user_id
+          const formattedEntries = data.map(entry => mapSupabaseToJournalEntry(entry as SupabaseJournalEntry));
+          setEntries(formattedEntries);
+          
+          // Update local storage with the latest data
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formattedEntries));
         } else {
-          // If not logged in, load from localStorage
-          console.log('User not logged in, using localStorage entries');
+          console.log('No entries found in Supabase, using localStorage');
           setEntries(parsedEntries);
         }
-      } catch (error) {
-        console.error('Error loading journal entries:', error);
-        // Try localStorage as last resort
-        try {
-          const savedEntries = localStorage.getItem(LOCAL_STORAGE_KEY);
-          if (savedEntries) {
-            setEntries(JSON.parse(savedEntries));
-          }
-        } catch (e) {
-          console.error('Final error loading from localStorage:', e);
-          setEntries([]);
-        }
-      } finally {
-        setIsLoading(false);
+      } else {
+        // If not logged in, load from localStorage
+        console.log('User not logged in or using local storage only, using localStorage entries');
+        setEntries(parsedEntries);
       }
-    };
+    } catch (error) {
+      console.error('Error loading journal entries:', error);
+      // Try localStorage as last resort
+      try {
+        const savedEntries = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedEntries) {
+          setEntries(JSON.parse(savedEntries));
+        }
+      } catch (e) {
+        console.error('Final error loading from localStorage:', e);
+        setEntries([]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, isPremium, localStorageOnly]);
 
+  // Initial load of entries
+  useEffect(() => {
     loadEntries();
-  }, [user]);
+  }, [loadEntries]);
 
   // Save entries to localStorage whenever they change
   useEffect(() => {
@@ -136,7 +167,7 @@ const useJournalStorage = () => {
       });
 
       // If user is authenticated, also save to Supabase
-      if (user) {
+      if (user && isPremium && !localStorageOnly) {
         try {
           console.log('Saving entry to Supabase for user:', user.id);
           const { error } = await supabase
@@ -170,7 +201,7 @@ const useJournalStorage = () => {
           console.error('Exception in saving to Supabase:', error);
         }
       } else {
-        console.log('User not authenticated, entry saved only locally');
+        console.log('User not authenticated or using local storage only, entry saved only locally');
         toast({
           title: "Entry Saved",
           description: "Your journal entry has been saved locally.",
@@ -188,7 +219,7 @@ const useJournalStorage = () => {
       });
       return null;
     }
-  }, [user, toast]);
+  }, [user, isPremium, localStorageOnly, toast]);
 
   // Delete an entry
   const deleteEntry = useCallback(async (id: string) => {
@@ -202,7 +233,7 @@ const useJournalStorage = () => {
     });
 
     // If user is authenticated, also delete from Supabase
-    if (user) {
+    if (user && isPremium && !localStorageOnly) {
       try {
         const { error } = await supabase
           .from('journal_entries')
@@ -228,13 +259,15 @@ const useJournalStorage = () => {
         console.error('Error in delete entry:', error);
       }
     }
-  }, [user, toast]);
+  }, [user, isPremium, localStorageOnly, toast]);
 
   return {
     entries,
     isLoading,
     addEntry,
-    deleteEntry
+    deleteEntry,
+    localStorageOnly,
+    toggleStoragePreference
   };
 };
 
