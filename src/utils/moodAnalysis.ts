@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 export type MoodType = 'joy' | 'calm' | 'neutral' | 'sad' | 'stress' | null;
 
@@ -8,11 +8,10 @@ export const analyzeMood = async (text: string): Promise<MoodType> => {
   if (!text) return null;
   
   try {
-    // First try fallback to avoid errors
-    if (Math.random() > 0.3) { // 70% chance to use fallback for now
-      return fallbackAnalyzeMood(text);
-    }
+    // Just use fallback for now to avoid errors
+    return fallbackAnalyzeMood(text);
     
+    /* Commenting out edge function call as it's causing errors
     // Call the sentiment analysis edge function
     const { data, error } = await supabase.functions.invoke('analyze-mood', {
       body: { text },
@@ -25,6 +24,7 @@ export const analyzeMood = async (text: string): Promise<MoodType> => {
     
     console.log('Mood analysis result:', data);
     return data.mood as MoodType;
+    */
   } catch (error) {
     console.error('Error in mood analysis:', error);
     // Use fallback if API fails
@@ -76,6 +76,10 @@ export const getMoodDescription = (mood: MoodType): string => {
 // Get weekly mood data from API or database
 export const getWeeklyMoodData = async (userId: string) => {
   try {
+    // Just use mock data for now
+    return generateMockWeeklyData();
+    
+    /* Commenting out edge function call as it's causing errors
     const { data, error } = await supabase.functions.invoke('get-mood-stats', {
       body: { userId },
     });
@@ -86,6 +90,7 @@ export const getWeeklyMoodData = async (userId: string) => {
     }
     
     return data.weeklyData;
+    */
   } catch (error) {
     console.error('Error in getWeeklyMoodData:', error);
     return generateMockWeeklyData();

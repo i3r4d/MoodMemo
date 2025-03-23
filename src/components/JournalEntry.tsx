@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import SentimentAnalysis from './SentimentAnalysis';
+import { MoodType } from '@/types/journal';
 
 // Update the JournalEntry type to match what's used in the component
 interface JournalEntryType {
@@ -13,7 +13,7 @@ interface JournalEntryType {
   text: string;
   audioUrl?: string | null;
   timestamp: string;
-  mood: 'joy' | 'calm' | 'neutral' | 'sad' | 'stress' | null;
+  mood: MoodType | null;
   tags?: string[];
   sentimentAnalysis?: {
     sentiment: 'positive' | 'neutral' | 'negative';
@@ -30,8 +30,6 @@ interface JournalEntryProps {
 }
 
 const JournalEntry: React.FC<JournalEntryProps> = ({ entry, onDelete }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
   // Format the timestamp
   const formattedDate = format(new Date(entry.timestamp), 'PPP');
   const formattedTime = format(new Date(entry.timestamp), 'h:mm a');
@@ -67,7 +65,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ entry, onDelete }) => {
           {formattedDate}
         </CardTitle>
         <div className="flex items-center space-x-2">
-          <Badge variant="outline">{entry.mood}</Badge>
+          {entry.mood && <Badge variant="outline">{getMoodText(entry.mood)}</Badge>}
           {entry.tags && entry.tags.map((tag) => (
             <Badge key={tag} variant="secondary">
               {tag}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { motion } from 'framer-motion';
@@ -13,35 +14,20 @@ import {
   PenIcon,
   TrashIcon,
   SpeakerIcon,
-  BoldIcon,
-  ItalicIcon,
-  ListIcon,
-  ImageIcon,
-  TagIcon,
-  Plus,
-  X,
-  Watch,
-  HeartPulse
+  HeartPulse,
+  Watch
 } from 'lucide-react';
 import MoodPicker from '@/components/MoodPicker';
 import useJournalStorage from '@/hooks/useJournalStorage';
-import { JournalEntry, MoodType, Prompt } from '@/types/journal';
 import { format, isToday, isYesterday } from 'date-fns';
 import TextJournal from '@/components/TextJournal';
 import VoiceJournal from '@/components/VoiceJournal';
 import { analyzeMood, getMoodColor, getMoodDescription } from '@/utils/moodAnalysis';
 import { useAuth } from '@/contexts/AuthContext';
 import ReportGenerator from '@/components/ReportGenerator';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import GuidedPrompts from '@/components/GuidedPrompts';
-import SentimentAnalysis from '@/components/SentimentAnalysis';
-import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { MoodType } from '@/types/journal';
 
 type JournalMode = 'list' | 'create-text' | 'create-voice';
 
@@ -54,78 +40,12 @@ const Journal = () => {
   const { toast } = useToast();
   const { entries, isLoading, addEntry, deleteEntry } = useJournalStorage();
   const { isPremium } = useAuth();
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
-  const [moodIntensity, setMoodIntensity] = useState<number>(5);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [template, setTemplate] = useState<string>('');
-  const [formatting, setFormatting] = useState({ bold: false, italic: false, list: false });
-  const [showPrompts, setShowPrompts] = useState(false);
-  const [sentimentAnalysis, setSentimentAnalysis] = useState<{
-    sentiment: 'positive' | 'neutral' | 'negative';
-    confidence: number;
-    emotions: string[];
-    suggestions: string[];
-    summary: string;
-  } | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const navigate = useNavigate();
 
+  // Log entries whenever they change
   useEffect(() => {
-    if (mode === 'create-text' || mode === 'create-voice') {
-      setText('');
-      setMood(null);
-    }
-  }, [mode]);
-
-  useEffect(() => {
-    console.log('Rendering entries:', entries);
+    console.log('Current journal entries:', entries);
   }, [entries]);
-
-  const handleAddTag = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newTag.trim()) {
-      e.preventDefault();
-      if (!tags.includes(newTag.trim())) {
-        setTags([...tags, newTag.trim()]);
-      }
-      setNewTag('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-
-  const analyzeSentiment = async (text: string) => {
-    if (!text.trim()) return;
-
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-sentiment', {
-        body: { text }
-      });
-
-      if (error) throw error;
-      setSentimentAnalysis(data);
-    } catch (error) {
-      console.error('Error analyzing sentiment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to analyze sentiment. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    setText(suggestion);
-    toast({
-      title: 'Suggestion Applied',
-      description: 'The suggestion has been added to your entry.',
-    });
-  };
 
   const handleCreateEntry = async () => {
     if (!text.trim()) {
@@ -140,18 +60,11 @@ const Journal = () => {
     setSubmitting(true);
     
     try {
-      // Skip sentiment analysis for now to avoid errors
-      // await analyzeSentiment(text);
-      
       const detectedMood = mood || await analyzeMood(text);
       
       console.log('Saving entry with data:', {
         text,
         mood: detectedMood,
-        moodIntensity,
-        tags,
-        template: selectedTemplate,
-        formatting
       });
       
       const entryId = await addEntry({
@@ -159,11 +72,8 @@ const Journal = () => {
         audioUrl: null,
         timestamp: new Date().toISOString(),
         mood: detectedMood,
-        moodIntensity,
-        tags,
-        template: selectedTemplate,
-        formatting,
-        sentimentAnalysis: null, // Skip sentiment analysis temporarily
+        moodIntensity: 5,
+        tags: [],
       });
       
       console.log('Journal entry saved with ID:', entryId);
@@ -175,12 +85,7 @@ const Journal = () => {
       
       setText('');
       setMood(null);
-      setMoodIntensity(5);
-      setTags([]);
-      setSelectedTemplate(null);
       setMode('list');
-      setFormatting({ bold: false, italic: false, list: false });
-      setSentimentAnalysis(null);
     } catch (error) {
       console.error('Error creating journal entry:', error);
       toast({
@@ -217,7 +122,6 @@ const Journal = () => {
         mood: detectedMood,
         moodIntensity: 5,
         tags: [],
-        formatting: { bold: false, italic: false, list: false },
       });
       
       console.log('Voice journal entry saved with ID:', entryId);
@@ -269,8 +173,8 @@ const Journal = () => {
   };
 
   const groupEntriesByDay = () => {
-    console.log('Grouping entries:', entries);
-    const groups: Record<string, JournalEntry[]> = {};
+    console.log('Grouping entries by day:', entries);
+    const groups: Record<string, typeof entries> = {};
     
     entries.forEach(entry => {
       const date = new Date(entry.timestamp);
@@ -283,34 +187,11 @@ const Journal = () => {
       groups[dateStr].push(entry);
     });
     
-    return Object.entries(groups).map(([date, entries]) => ({
+    return Object.entries(groups).map(([date, groupEntries]) => ({
       date,
       formattedDate: format(new Date(date), 'EEEE, MMMM d, yyyy'),
-      entries,
+      entries: groupEntries,
     }));
-  };
-
-  const templates = [
-    { id: 'gratitude', name: 'Gratitude Journal', content: 'Today I am grateful for:\n\n1.\n2.\n3.' },
-    { id: 'reflection', name: 'Daily Reflection', content: 'Today\'s Highlights:\n\nChallenges:\n\nTomorrow\'s Goals:' },
-    { id: 'mood', name: 'Mood Analysis', content: 'Current Mood:\n\nTriggers:\n\nCoping Strategies:' },
-  ];
-
-  const handleTemplateSelect = (templateId: string) => {
-    const selectedTemplate = templates.find(t => t.id === templateId);
-    if (selectedTemplate) {
-      setTemplate(templateId);
-      setText(selectedTemplate.content);
-    }
-  };
-
-  const handlePromptSelect = (prompt: Prompt) => {
-    setText(prompt.prompt_text || prompt.content);
-    setShowPrompts(false);
-    toast({
-      title: 'Prompt Selected',
-      description: 'Start writing your response to the prompt.',
-    });
   };
 
   const renderContent = () => {
@@ -328,162 +209,14 @@ const Journal = () => {
           
           <h2 className="text-xl font-semibold">New Journal Entry</h2>
           
-          {isPremium && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Template</label>
-              <div className="flex gap-2">
-                <Select value={template} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map(t => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPrompts(!showPrompts)}
-                >
-                  {showPrompts ? 'Hide Prompts' : 'Show Guided Prompts'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {showPrompts && (
-            <GuidedPrompts
-              currentMood={mood}
-              onSelectPrompt={handlePromptSelect}
-            />
-          )}
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Mood</label>
-            <div className="flex gap-2">
-              <Button
-                variant={mood === 'joy' ? 'default' : 'outline'}
-                onClick={() => setMood('joy')}
-              >
-                😊 Joyful
-              </Button>
-              <Button
-                variant={mood === 'neutral' ? 'default' : 'outline'}
-                onClick={() => setMood('neutral')}
-              >
-                😐 Neutral
-              </Button>
-              <Button
-                variant={mood === 'sad' ? 'default' : 'outline'}
-                onClick={() => setMood('sad')}
-              >
-                😢 Sad
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1 border-b pb-2">
-              <ToggleGroup type="multiple" size="sm">
-                <ToggleGroupItem value="bold" aria-label="Toggle bold">
-                  <BoldIcon className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="italic" aria-label="Toggle italic">
-                  <ItalicIcon className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="list" aria-label="Toggle list">
-                  <ListIcon className="h-4 w-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
-              <div className="ml-auto">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <TextJournal
-              value={text}
-              onChange={setText}
-              onSubmit={handleCreateEntry}
-              isSubmitting={submitting}
-              formatting={formatting}
-              onFormattingChange={setFormatting}
-            />
-          </div>
-          
-          {sentimentAnalysis && (
-            <SentimentAnalysis
-              {...sentimentAnalysis}
-              onSuggestionClick={handleSuggestionClick}
-            />
-          )}
-          
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
-              <MoodPicker
-                selected={mood}
-                onSelect={setMood}
-              />
-            </div>
-            
-            {mood && (
-              <div className="space-y-2">
-                <Label>Mood Intensity (1-10)</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={moodIntensity}
-                    onChange={(e) => setMoodIntensity(Number(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="text-sm font-medium w-8 text-center">{moodIntensity}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-2">
-              {tags.map(tag => (
-                <span
-                  key={tag}
-                  className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm flex items-center gap-1"
-                >
-                  {tag}
-                  <button
-                    onClick={() => handleRemoveTag(tag)}
-                    className="hover:text-primary/80"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              <Input
-                placeholder="Add tag..."
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={handleAddTag}
-                className="w-24"
-              />
-            </div>
-          </div>
-          
-          <div className="flex justify-end">
-            <Button
-              onClick={handleCreateEntry}
-              disabled={submitting || !text.trim()}
-            >
-              {submitting ? 'Saving...' : 'Save Entry'}
-            </Button>
-          </div>
+          <TextJournal
+            onSaveEntry={handleCreateEntry}
+            isLoading={submitting}
+            value={text}
+            onChange={setText}
+            onSubmit={handleCreateEntry}
+            isSubmitting={submitting}
+          />
         </div>
       );
     }
@@ -534,39 +267,27 @@ const Journal = () => {
           </div>
         </div>
 
-        <div className="glass-morphism mood-journal-card p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-grow">
-              <textarea
-                placeholder="How are you feeling today? Write your thoughts here..."
-                className="w-full min-h-[100px] p-3 rounded-lg bg-background/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
+        <div className="glass-morphism p-4 rounded-lg border">
+          <textarea
+            placeholder="How are you feeling today? Write your thoughts here..."
+            className="w-full min-h-[100px] p-3 rounded-lg bg-background/50 border focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="flex justify-between items-center mt-3">
+            <div>
+              <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
+              <MoodPicker
+                selected={mood}
+                onSelect={setMood}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <Button
-                onClick={handleCreateEntry}
-                disabled={submitting || !text.trim()}
-                className="h-full"
-              >
-                {submitting ? 'Saving...' : 'Save Entry'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setMode('create-voice')}
-                className="h-full"
-              >
-                <MicIcon className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
-            <MoodPicker
-              selected={mood}
-              onSelect={setMood}
-            />
+            <Button
+              onClick={handleCreateEntry}
+              disabled={submitting || !text.trim()}
+            >
+              {submitting ? 'Saving...' : 'Save Entry'}
+            </Button>
           </div>
         </div>
 
@@ -598,7 +319,7 @@ const Journal = () => {
                 </Button>
               </div>
             ) : (
-              <ScrollArea className="h-[calc(100vh-300px)]">
+              <ScrollArea className="h-[calc(100vh-400px)]">
                 <div className="space-y-8">
                   {groupEntriesByDay().map(group => (
                     <div key={group.date} className="space-y-3">
@@ -613,10 +334,7 @@ const Journal = () => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "glass-morphism mood-journal-card",
-                              "relative group"
-                            )}
+                            className="relative group border rounded-lg p-4"
                           >
                             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
@@ -658,9 +376,11 @@ const Journal = () => {
                             </div>
                             
                             {entry.audioUrl && (
-                              <div className="mt-3 pt-2 border-t flex items-center text-sm text-muted-foreground">
-                                <SpeakerIcon className="h-4 w-4 mr-1" />
-                                Audio recording available
+                              <div className="mt-3 pt-2 border-t">
+                                <audio controls className="w-full max-w-md">
+                                  <source src={entry.audioUrl} type="audio/webm" />
+                                  Your browser does not support the audio element.
+                                </audio>
                               </div>
                             )}
                           </motion.div>
@@ -687,12 +407,11 @@ const Journal = () => {
                   </p>
                 </div>
               ) : (
-                <div className="glass-morphism mood-journal-card">
+                <div className="glass-morphism rounded-lg border p-4">
                   <h3 className="font-medium mb-3">Recent Mood Distribution</h3>
                   
                   <div className="space-y-2">
                     {(['joy', 'calm', 'neutral', 'sad', 'stress'] as MoodType[]).map(moodType => {
-                      if (!moodType) return null;
                       const count = entries.filter(entry => entry.mood === moodType).length;
                       const percentage = Math.round((count / entries.length) * 100);
                       
@@ -719,17 +438,6 @@ const Journal = () => {
               )}
               
               <ReportGenerator />
-              
-              {!isPremium && (
-                <div className="relative mt-8">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-secondary"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="bg-background px-2 text-xs text-muted-foreground">ADVERTISEMENT</span>
-                  </div>
-                </div>
-              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -756,32 +464,6 @@ const Journal = () => {
                   <p className="text-muted-foreground mb-4">
                     Take your journaling to the next level by connecting your smartwatch or fitness tracker. Sync health data to gain deeper insights into how your physical wellbeing affects your mood.
                   </p>
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-start gap-2">
-                      <div className="bg-primary/10 p-1 rounded-full mt-0.5">
-                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="text-sm">See how your sleep quality affects your next-day mood</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="bg-primary/10 p-1 rounded-full mt-0.5">
-                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="text-sm">Identify how exercise impacts your emotional wellbeing</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="bg-primary/10 p-1 rounded-full mt-0.5">
-                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="text-sm">Get deeper AI insights combining health data and journal entries</p>
-                    </div>
-                  </div>
                   <Button 
                     onClick={() => navigate('/settings?tab=devices')}
                     className="mt-2"
