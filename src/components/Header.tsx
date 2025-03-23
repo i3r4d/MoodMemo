@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -11,9 +11,24 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { UserIcon, LogOutIcon, SettingsIcon, HomeIcon, BookIcon, PlusIcon, BrainCircuitIcon } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { 
+  UserIcon, 
+  LogOutIcon, 
+  SettingsIcon, 
+  HomeIcon, 
+  BookIcon, 
+  PlusIcon, 
+  Menu,
+  LightbulbIcon
+} from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  scrollY?: number;
+}
+
+const Header: React.FC<HeaderProps> = ({ scrollY = 0 }) => {
   const location = useLocation();
   const path = location.pathname;
   const { isAuthenticated, signOut, user } = useAuth();
@@ -44,17 +59,47 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-border">
+    <header 
+      className={cn(
+        "sticky top-0 z-30 w-full transition-all duration-300",
+        scrollY > 50 
+          ? "bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b border-border" 
+          : "bg-transparent"
+      )}
+    >
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
-            <div className="md:block">
-              <Logo />
+            <div className="relative">
+              <motion.div 
+                className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20,
+                }}
+              >
+                <motion.span>M</motion.span>
+              </motion.div>
+              <motion.div
+                className="absolute -top-1 -right-1 w-4 h-4 bg-blue-400 rounded-full"
+                animate={{
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                  duration: 2,
+                }}
+              />
             </div>
+            <span className="font-semibold text-xl">MoodMemo</span>
           </Link>
           
           <motion.h1 
-            className="text-xl font-semibold tracking-tight"
+            className="text-xl font-semibold tracking-tight ml-2"
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
@@ -76,48 +121,120 @@ const Header: React.FC = () => {
               )}
               aria-label="New Journal Entry"
               onClick={() => navigate('/journal')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               <PlusIcon className="h-5 w-5" />
             </motion.button>
           )}
           
-          {isAuthenticated && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className={cn(
-                    "rounded-full p-2",
-                    "bg-secondary text-secondary-foreground",
-                    "hover:bg-secondary/80 focus-ring"
-                  )}
-                  aria-label="Account"
+          {/* Desktop Navigation - Hidden on Mobile */}
+          <div className="hidden md:flex items-center gap-2">
+            {isAuthenticated && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className={cn(
+                      "rounded-full p-2",
+                      "bg-secondary text-secondary-foreground",
+                      "hover:bg-secondary/80 focus-ring"
+                    )}
+                    aria-label="Account"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <UserIcon className="h-5 w-5" />
+                  </motion.button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => navigate('/my-account')}>
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>My Account</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <SettingsIcon className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOutIcon className="mr-2 h-4 w-4" />
+                    <span>Log Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+          
+          {/* Mobile Navigation */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <nav className="flex flex-col gap-4 mt-8">
+                <Link
+                  to="/"
+                  className="flex items-center gap-4 px-2 py-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <UserIcon className="h-5 w-5" />
-                </motion.button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => navigate('/my-account')}>
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>My Account</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <SettingsIcon className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOutIcon className="mr-2 h-4 w-4" />
-                  <span>Log Out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                  <HomeIcon className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Home</span>
+                </Link>
+                <Link
+                  to="/journal"
+                  className="flex items-center gap-4 px-2 py-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <BookIcon className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Journal</span>
+                </Link>
+                <Link
+                  to="/insights"
+                  className="flex items-center gap-4 px-2 py-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <LightbulbIcon className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Insights</span>
+                </Link>
+                <Link
+                  to="/exercises"
+                  className="flex items-center gap-4 px-2 py-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <DumbbellIcon className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Exercises</span>
+                </Link>
+                <Link
+                  to="/settings"
+                  className="flex items-center gap-4 px-2 py-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <SettingsIcon className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Settings</span>
+                </Link>
+                
+                {isAuthenticated ? (
+                  <Button variant="destructive" onClick={handleSignOut} className="mt-4">
+                    <LogOutIcon className="mr-2 h-4 w-4" />
+                    Log Out
+                  </Button>
+                ) : (
+                  <div className="flex flex-col gap-2 mt-4">
+                    <Button onClick={() => navigate('/login')}>
+                      Sign In
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate('/register')}>
+                      Sign Up
+                    </Button>
+                  </div>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
           
           {!isAuthenticated && (
-            <div className="flex gap-2">
+            <div className="hidden md:flex gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -140,29 +257,5 @@ const Header: React.FC = () => {
     </header>
   );
 };
-
-const Logo: React.FC = () => (
-  <Link to="/" className="flex items-center gap-1.5">
-    <div className="relative h-8 w-8 overflow-hidden rounded-full bg-primary flex items-center justify-center">
-      <motion.div 
-        className="absolute inset-0 bg-gradient-to-tr from-primary/80 to-primary rounded-full"
-        animate={{ 
-          scale: [1, 1.1, 1],
-          opacity: [0.7, 1, 0.7],
-        }}
-        transition={{ 
-          repeat: Infinity,
-          duration: 3,
-          ease: "easeInOut"
-        }}
-      />
-      <span className="relative text-white font-semibold text-sm">M</span>
-    </div>
-    <span className="font-medium">MoodMemo</span>
-  </Link>
-);
-
-// Import Button component
-import { Button } from "@/components/ui/button";
 
 export default Header;
