@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { MoodType, getMoodColor, getMoodDescription } from '@/utils/moodAnalysis';
 
 interface MoodPickerProps {
-  selected: MoodType;
-  onSelect: (mood: MoodType) => void;
+  selected: MoodType | null;
+  onSelect: (mood: MoodType | null) => void;
 }
 
 const MoodPicker: React.FC<MoodPickerProps> = ({ selected, onSelect }) => {

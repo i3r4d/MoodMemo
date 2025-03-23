@@ -3,15 +3,17 @@ import { supabase } from '@/lib/supabase';
 
 export type MoodType = 'joy' | 'calm' | 'neutral' | 'sad' | 'stress' | null;
 
-// Function to analyze text using an API instead of the simple mock
+// Function to analyze text using an API or fallback
 export const analyzeMood = async (text: string): Promise<MoodType> => {
-  if (!text) return null;
+  if (!text) return 'neutral';
+  
+  console.log('Analyzing mood for text:', text);
   
   try {
-    // Just use fallback for now to avoid errors
+    // Use fallback for now to ensure reliability
     return fallbackAnalyzeMood(text);
     
-    /* Commenting out edge function call as it's causing errors
+    /* Edge function call - Commenting this out until it's confirmed working
     // Call the sentiment analysis edge function
     const { data, error } = await supabase.functions.invoke('analyze-mood', {
       body: { text },
@@ -36,13 +38,17 @@ export const analyzeMood = async (text: string): Promise<MoodType> => {
 const fallbackAnalyzeMood = (text: string): MoodType => {
   const lowerText = text.toLowerCase();
   
-  if (lowerText.includes('happy') || lowerText.includes('joy') || lowerText.includes('excited') || lowerText.includes('great')) {
+  if (lowerText.includes('happy') || lowerText.includes('joy') || lowerText.includes('excited') || 
+      lowerText.includes('great') || lowerText.includes('wonderful') || lowerText.includes('fantastic')) {
     return 'joy';
-  } else if (lowerText.includes('calm') || lowerText.includes('peaceful') || lowerText.includes('relaxed')) {
+  } else if (lowerText.includes('calm') || lowerText.includes('peaceful') || lowerText.includes('relaxed') ||
+             lowerText.includes('serene') || lowerText.includes('tranquil')) {
     return 'calm';
-  } else if (lowerText.includes('sad') || lowerText.includes('upset') || lowerText.includes('depressed')) {
+  } else if (lowerText.includes('sad') || lowerText.includes('upset') || lowerText.includes('depressed') ||
+             lowerText.includes('unhappy') || lowerText.includes('miserable')) {
     return 'sad';
-  } else if (lowerText.includes('stress') || lowerText.includes('anxious') || lowerText.includes('worried')) {
+  } else if (lowerText.includes('stress') || lowerText.includes('anxious') || lowerText.includes('worried') ||
+             lowerText.includes('nervous') || lowerText.includes('tense')) {
     return 'stress';
   } else {
     return 'neutral';
@@ -70,30 +76,6 @@ export const getMoodDescription = (mood: MoodType): string => {
     case 'sad': return 'Sad';
     case 'stress': return 'Stressed';
     default: return 'Unknown';
-  }
-};
-
-// Get weekly mood data from API or database
-export const getWeeklyMoodData = async (userId: string) => {
-  try {
-    // Just use mock data for now
-    return generateMockWeeklyData();
-    
-    /* Commenting out edge function call as it's causing errors
-    const { data, error } = await supabase.functions.invoke('get-mood-stats', {
-      body: { userId },
-    });
-    
-    if (error) {
-      console.error('Error fetching mood stats:', error);
-      return generateMockWeeklyData();
-    }
-    
-    return data.weeklyData;
-    */
-  } catch (error) {
-    console.error('Error in getWeeklyMoodData:', error);
-    return generateMockWeeklyData();
   }
 };
 

@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import useBrowserSpeechToText from '@/hooks/useBrowserSpeechToText';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   MicIcon,
   StopCircleIcon,
@@ -16,7 +14,6 @@ import {
   PauseIcon,
   FileTextIcon,
   CheckIcon,
-  TrashIcon,
   RefreshCwIcon,
 } from 'lucide-react';
 
@@ -36,7 +33,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
-  const { isPremium, user } = useAuth();
   
   const {
     isRecording,
@@ -55,12 +51,15 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     stopListening 
   } = useBrowserSpeechToText();
 
+  // Monitor transcript changes
   useEffect(() => {
     if (transcript) {
+      console.log("Transcript updated:", transcript);
       setTranscribedText(transcript);
     }
   }, [transcript]);
 
+  // Set up audio player controls
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.onplay = () => setIsPlaying(true);
@@ -85,9 +84,10 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
 
   const handleStartRecording = async () => {
     try {
+      console.log('Starting recording...');
       await startRecording();
       startListening();
-      console.log('Recording started');
+      console.log('Recording started successfully');
     } catch (error) {
       console.error('Error starting recording:', error);
       toast({
@@ -100,25 +100,10 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
 
   const handleStopRecording = async () => {
     try {
-      console.log('Attempting to stop recording...');
-      if (isRecording) {
-        stopListening();
-        const blob = await stopRecording();
-        console.log('Recording stopped, blob:', blob);
-        
-        if (!blob) {
-          toast({
-            title: 'Recording Error',
-            description: 'Failed to process the recording.',
-            variant: 'destructive',
-          });
-          return;
-        }
-        
-        if (isPremium && user && recordingBlob) {
-          handleServerTranscription(recordingBlob);
-        }
-      }
+      console.log('Stopping recording...');
+      stopListening();
+      await stopRecording();
+      console.log('Recording stopped successfully');
     } catch (error) {
       console.error('Error stopping recording:', error);
       toast({
@@ -126,65 +111,6 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
         description: 'There was a problem processing your recording.',
         variant: 'destructive',
       });
-    }
-  };
-
-  const handleServerTranscription = async (blob: Blob) => {
-    if (!isPremium || !user) return;
-    
-    setIsTranscribing(true);
-    
-    try {
-      const fileName = `temp-recordings/${user.id}/${Date.now()}.webm`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('audio-uploads')
-        .upload(fileName, blob, {
-          contentType: 'audio/webm',
-        });
-        
-      if (uploadError) {
-        throw new Error(`Upload error: ${uploadError.message}`);
-      }
-      
-      const { data: urlData } = await supabase.storage
-        .from('audio-uploads')
-        .createSignedUrl(fileName, 60);
-        
-      if (!urlData?.signedUrl) {
-        throw new Error('Failed to get signed URL for transcription');
-      }
-      
-      const { data: transcriptionData, error: transcriptionError } = await supabase.functions
-        .invoke('transcribe-audio', {
-          body: { audioUrl: urlData.signedUrl }
-        });
-        
-      if (transcriptionError) {
-        throw new Error(`Transcription error: ${transcriptionError.message}`);
-      }
-      
-      if (transcriptionData.text) {
-        setTranscribedText(transcriptionData.text);
-      } else {
-        setTranscribedText(transcript || '');
-      }
-      
-      await supabase.storage
-        .from('audio-uploads')
-        .remove([fileName]);
-        
-    } catch (error) {
-      console.error('Server transcription error:', error);
-      toast({
-        title: 'Transcription Error',
-        description: 'Failed to transcribe your recording. Please edit manually.',
-        variant: 'default',
-      });
-      
-      setTranscribedText(transcript || '');
-    } finally {
-      setIsTranscribing(false);
     }
   };
 

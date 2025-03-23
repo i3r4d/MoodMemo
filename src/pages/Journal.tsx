@@ -13,23 +13,20 @@ import {
   MicIcon, 
   PenIcon,
   TrashIcon,
-  SpeakerIcon,
   HeartPulse,
   Watch
 } from 'lucide-react';
 import MoodPicker from '@/components/MoodPicker';
 import useJournalStorage from '@/hooks/useJournalStorage';
 import { format, isToday, isYesterday } from 'date-fns';
-import TextJournal from '@/components/TextJournal';
 import VoiceJournal from '@/components/VoiceJournal';
 import { analyzeMood, getMoodColor, getMoodDescription } from '@/utils/moodAnalysis';
 import { useAuth } from '@/contexts/AuthContext';
-import ReportGenerator from '@/components/ReportGenerator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { MoodType } from '@/types/journal';
 
-type JournalMode = 'list' | 'create-text' | 'create-voice';
+type JournalMode = 'list' | 'create-voice';
 
 const Journal = () => {
   const [mode, setMode] = useState<JournalMode>('list');
@@ -47,7 +44,7 @@ const Journal = () => {
     console.log('Current journal entries:', entries);
   }, [entries]);
 
-  const handleCreateEntry = async () => {
+  const handleCreateTextEntry = async () => {
     if (!text.trim()) {
       toast({
         title: "Empty Entry",
@@ -72,7 +69,6 @@ const Journal = () => {
         audioUrl: null,
         timestamp: new Date().toISOString(),
         mood: detectedMood,
-        moodIntensity: 5,
         tags: [],
       });
       
@@ -85,7 +81,6 @@ const Journal = () => {
       
       setText('');
       setMood(null);
-      setMode('list');
     } catch (error) {
       console.error('Error creating journal entry:', error);
       toast({
@@ -120,7 +115,6 @@ const Journal = () => {
         audioUrl,
         timestamp: new Date().toISOString(),
         mood: detectedMood,
-        moodIntensity: 5,
         tags: [],
       });
       
@@ -195,32 +189,6 @@ const Journal = () => {
   };
 
   const renderContent = () => {
-    if (mode === 'create-text') {
-      return (
-        <div className="space-y-4">
-          <Button
-            variant="ghost"
-            className="mb-2"
-            onClick={() => setMode('list')}
-          >
-            <ChevronLeftIcon className="h-4 w-4 mr-1" />
-            Back to Journal
-          </Button>
-          
-          <h2 className="text-xl font-semibold">New Journal Entry</h2>
-          
-          <TextJournal
-            onSaveEntry={handleCreateEntry}
-            isLoading={submitting}
-            value={text}
-            onChange={setText}
-            onSubmit={handleCreateEntry}
-            isSubmitting={submitting}
-          />
-        </div>
-      );
-    }
-    
     if (mode === 'create-voice') {
       return (
         <div className="space-y-4">
@@ -244,6 +212,7 @@ const Journal = () => {
       );
     }
     
+    // Default mode: list
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -258,7 +227,7 @@ const Journal = () => {
               Voice Entry
             </Button>
             <Button
-              onClick={() => setMode('create-text')}
+              variant="default"
               className="gap-2"
             >
               <PenIcon className="h-4 w-4" />
@@ -283,7 +252,7 @@ const Journal = () => {
               />
             </div>
             <Button
-              onClick={handleCreateEntry}
+              onClick={handleCreateTextEntry}
               disabled={submitting || !text.trim()}
             >
               {submitting ? 'Saving...' : 'Save Entry'}
@@ -309,14 +278,6 @@ const Journal = () => {
                 </div>
                 <h3 className="font-medium text-lg">No journal entries yet</h3>
                 <p className="text-muted-foreground">Start writing or recording to create your first entry.</p>
-                <Button
-                  variant="default"
-                  onClick={() => setMode('create-text')}
-                  className="mt-2"
-                >
-                  <PlusIcon className="h-4 w-4 mr-1" />
-                  Create First Entry
-                </Button>
               </div>
             ) : (
               <ScrollArea className="h-[calc(100vh-400px)]">
@@ -436,8 +397,6 @@ const Journal = () => {
                   </div>
                 </div>
               )}
-              
-              <ReportGenerator />
             </div>
           </TabsContent>
         </Tabs>
@@ -450,7 +409,7 @@ const Journal = () => {
       <div className="max-w-3xl mx-auto py-4">
         {renderContent()}
         
-        {isPremium ? (
+        {isPremium && (
           <Card className="mt-8 border-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -478,26 +437,6 @@ const Journal = () => {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="mt-8 border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HeartPulse className="h-5 w-5 text-primary" />
-                Premium Health Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Upgrade to premium to connect your smartwatch or fitness tracker and gain deeper insights into how your physical wellbeing affects your mood.
-              </p>
-              <Button 
-                onClick={() => navigate('/settings')}
-                className="mt-2"
-              >
-                Upgrade to Premium
-              </Button>
             </CardContent>
           </Card>
         )}
