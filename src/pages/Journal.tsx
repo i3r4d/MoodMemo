@@ -579,8 +579,10 @@ const Journal = () => {
               </div>
             ) : (
               <ScrollArea className="h-[calc(100vh-300px)]">
+                {useEffect(() => {
+                  console.log('Rendering entries:', entries);
+                }, [entries])}
                 <div className="space-y-8">
-                  {console.log('Rendering entries:', entries)}
                   {groupEntriesByDay().map(group => (
                     <div key={group.date} className="space-y-3">
                       <h3 className="text-sm font-medium text-muted-foreground">
