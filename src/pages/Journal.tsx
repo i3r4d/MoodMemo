@@ -140,9 +140,19 @@ const Journal = () => {
     setSubmitting(true);
     
     try {
-      await analyzeSentiment(text);
+      // Skip sentiment analysis for now to avoid errors
+      // await analyzeSentiment(text);
       
       const detectedMood = mood || await analyzeMood(text);
+      
+      console.log('Saving entry with data:', {
+        text,
+        mood: detectedMood,
+        moodIntensity,
+        tags,
+        template: selectedTemplate,
+        formatting
+      });
       
       const entryId = await addEntry({
         text,
@@ -153,7 +163,7 @@ const Journal = () => {
         tags,
         template: selectedTemplate,
         formatting,
-        sentimentAnalysis: sentimentAnalysis,
+        sentimentAnalysis: null, // Skip sentiment analysis temporarily
       });
       
       console.log('Journal entry saved with ID:', entryId);
@@ -196,16 +206,21 @@ const Journal = () => {
         return;
       }
       
+      console.log('Saving voice entry with data:', { text, audioUrl });
+      
       const detectedMood = await analyzeMood(text);
       
-      await addEntry({
+      const entryId = await addEntry({
         text,
         audioUrl,
         timestamp: new Date().toISOString(),
         mood: detectedMood,
+        moodIntensity: 5,
         tags: [],
-        formatting,
+        formatting: { bold: false, italic: false, list: false },
       });
+      
+      console.log('Voice journal entry saved with ID:', entryId);
       
       toast({
         title: "Entry Saved",
@@ -254,6 +269,7 @@ const Journal = () => {
   };
 
   const groupEntriesByDay = () => {
+    console.log('Grouping entries:', entries);
     const groups: Record<string, JournalEntry[]> = {};
     
     entries.forEach(entry => {

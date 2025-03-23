@@ -22,6 +22,11 @@ interface SupabaseJournalEntry {
   created_at?: string;
   updated_at?: string;
   encrypted?: boolean;
+  formatting?: {
+    bold: boolean;
+    italic: boolean;
+    list: boolean;
+  };
 }
 
 // Convert Supabase data format to our app's JournalEntry format
@@ -36,7 +41,8 @@ const mapSupabaseToJournalEntry = (entry: SupabaseJournalEntry): JournalEntry =>
     tags: entry.tags || [],
     template: entry.template,
     userId: entry.user_id,
-    user_id: entry.user_id
+    user_id: entry.user_id,
+    formatting: entry.formatting || { bold: false, italic: false, list: false }
   };
 };
 
@@ -83,6 +89,7 @@ const useJournalStorage = () => {
     if (!user) return [];
     
     try {
+      console.log('Fetching cloud entries for user:', user.id);
       const { data, error } = await supabase
         .from('journal_entries')
         .select('id, text, audio_url, timestamp, mood, mood_intensity, tags, template, user_id')
@@ -94,6 +101,7 @@ const useJournalStorage = () => {
         return [];
       }
       
+      console.log('Fetched entries from Supabase:', data);
       return (data || []).map(mapSupabaseToJournalEntry);
     } catch (error) {
       console.error('Error in fetchCloudEntries:', error);
@@ -164,6 +172,8 @@ const useJournalStorage = () => {
 
   const addEntry = useCallback(async (entry: Omit<JournalEntry, 'id' | 'userId' | 'user_id'>) => {
     try {
+      console.log('Adding journal entry:', entry);
+      
       if (user && isPremium && !localStorageOnly) {
         const { data, error } = await supabase
           .from('journal_entries')
@@ -191,9 +201,11 @@ const useJournalStorage = () => {
         }
         
         const newEntry = mapSupabaseToJournalEntry(data);
+        console.log('Added journal entry to Supabase:', newEntry);
         setEntries(prev => [newEntry, ...prev]);
         return newEntry.id;
       } else {
+        // Free user or localStorageOnly: save to local storage
         const newEntry: JournalEntry = {
           ...entry,
           id: uuidv4(),
@@ -202,6 +214,7 @@ const useJournalStorage = () => {
           user_id: user?.id
         };
         
+        console.log('Added journal entry to local storage:', newEntry);
         setEntries(prev => [newEntry, ...prev]);
         return newEntry.id;
       }

@@ -54,6 +54,9 @@ export type Database = {
           encrypted: boolean | null
           id: string
           mood: string | null
+          mood_intensity: number | null
+          tags: string[] | null
+          template: string | null
           text: string
           timestamp: string
           updated_at: string
@@ -65,6 +68,9 @@ export type Database = {
           encrypted?: boolean | null
           id?: string
           mood?: string | null
+          mood_intensity?: number | null
+          tags?: string[] | null
+          template?: string | null
           text: string
           timestamp?: string
           updated_at?: string
@@ -76,6 +82,9 @@ export type Database = {
           encrypted?: boolean | null
           id?: string
           mood?: string | null
+          mood_intensity?: number | null
+          tags?: string[] | null
+          template?: string | null
           text?: string
           timestamp?: string
           updated_at?: string

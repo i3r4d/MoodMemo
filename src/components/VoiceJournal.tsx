@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -86,6 +87,7 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
     try {
       await startRecording();
       startListening();
+      console.log('Recording started');
     } catch (error) {
       console.error('Error starting recording:', error);
       toast({
@@ -98,9 +100,11 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
 
   const handleStopRecording = async () => {
     try {
+      console.log('Attempting to stop recording...');
       if (isRecording) {
         stopListening();
         const blob = await stopRecording();
+        console.log('Recording stopped, blob:', blob);
         
         if (!blob) {
           toast({
@@ -202,6 +206,7 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
   };
 
   const handleSave = () => {
+    console.log('Saving voice journal entry:', { audioUrl, text: transcribedText });
     onComplete(audioUrl, transcribedText);
   };
 
@@ -213,6 +218,8 @@ const VoiceJournal: React.FC<VoiceJournalProps> = ({
       }
     }, 100);
   };
+
+  console.log('Voice Journal Render State:', { isRecording, audioUrl, recordingTime });
 
   return (
     <div className="space-y-4 w-full max-w-2xl mx-auto">

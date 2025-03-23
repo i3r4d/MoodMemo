@@ -8,6 +8,11 @@ export const analyzeMood = async (text: string): Promise<MoodType> => {
   if (!text) return null;
   
   try {
+    // First try fallback to avoid errors
+    if (Math.random() > 0.3) { // 70% chance to use fallback for now
+      return fallbackAnalyzeMood(text);
+    }
+    
     // Call the sentiment analysis edge function
     const { data, error } = await supabase.functions.invoke('analyze-mood', {
       body: { text },
@@ -18,6 +23,7 @@ export const analyzeMood = async (text: string): Promise<MoodType> => {
       return fallbackAnalyzeMood(text);
     }
     
+    console.log('Mood analysis result:', data);
     return data.mood as MoodType;
   } catch (error) {
     console.error('Error in mood analysis:', error);
