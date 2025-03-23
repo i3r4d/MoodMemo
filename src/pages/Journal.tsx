@@ -78,6 +78,10 @@ const Journal = () => {
     }
   }, [mode]);
 
+  useEffect(() => {
+    console.log('Rendering entries:', entries);
+  }, [entries]);
+
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && newTag.trim()) {
       e.preventDefault();
@@ -579,9 +583,6 @@ const Journal = () => {
               </div>
             ) : (
               <ScrollArea className="h-[calc(100vh-300px)]">
-                {useEffect(() => {
-                  console.log('Rendering entries:', entries);
-                }, [entries])}
                 <div className="space-y-8">
                   {groupEntriesByDay().map(group => (
                     <div key={group.date} className="space-y-3">
