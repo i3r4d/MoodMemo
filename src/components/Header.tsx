@@ -20,7 +20,7 @@ import {
   BookIcon, 
   PlusIcon, 
   Menu,
-  LightbulbIcon
+  LightbulbIcon,
   DumbbellIcon
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
