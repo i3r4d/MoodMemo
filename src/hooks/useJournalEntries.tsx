@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
 export interface JournalEntry {
@@ -25,8 +25,11 @@ const useJournalEntries = () => {
     const loadEntries = async () => {
       try {
         setIsLoading(true);
+        console.log('Loading entries, user:', user);
+        
         if (user) {
           // Try to load from Supabase first
+          console.log('Attempting to load entries from Supabase for user:', user.id);
           const { data, error } = await supabase
             .from('journal_entries')
             .select('id, text, audio_url, timestamp, mood')
@@ -54,6 +57,7 @@ const useJournalEntries = () => {
           }
         } else {
           // If not logged in, load from localStorage
+          console.log('User not logged in, loading from localStorage');
           loadFromLocalStorage();
         }
       } catch (error) {
@@ -87,6 +91,7 @@ const useJournalEntries = () => {
   // Save entries to localStorage whenever they change
   useEffect(() => {
     if (!isLoading) {
+      console.log('Saving entries to localStorage:', entries);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     }
   }, [entries, isLoading]);
@@ -94,16 +99,20 @@ const useJournalEntries = () => {
   // Add a new entry
   const addEntry = useCallback(async (entry: Omit<JournalEntry, 'id'>) => {
     try {
+      console.log('Adding new entry:', entry);
       const newId = Date.now().toString();
       const newEntry: JournalEntry = {
         ...entry,
         id: newId,
       };
 
-      console.log('Adding new entry:', newEntry);
-
       // Add to local state first for immediate UI update
-      setEntries(prevEntries => [newEntry, ...prevEntries]);
+      setEntries(prevEntries => {
+        console.log('Previous entries:', prevEntries);
+        const updatedEntries = [newEntry, ...prevEntries];
+        console.log('Updated entries:', updatedEntries);
+        return updatedEntries;
+      });
 
       // If user is authenticated, also save to Supabase
       if (user) {
@@ -129,12 +138,22 @@ const useJournalEntries = () => {
             });
           } else {
             console.log('Entry saved successfully to Supabase:', data);
+            toast({
+              title: "Entry Saved",
+              description: "Your journal entry has been saved successfully.",
+              variant: "default",
+            });
           }
         } catch (error) {
           console.error('Exception in saving to Supabase:', error);
         }
       } else {
         console.log('User not authenticated, entry saved only locally');
+        toast({
+          title: "Entry Saved",
+          description: "Your journal entry has been saved locally.",
+          variant: "default",
+        });
       }
 
       return newId;
@@ -151,11 +170,14 @@ const useJournalEntries = () => {
 
   // Update an existing entry
   const updateEntry = useCallback(async (id: string, updatedFields: Partial<JournalEntry>) => {
-    setEntries(prevEntries =>
-      prevEntries.map(entry =>
+    console.log('Updating entry:', id, updatedFields);
+    setEntries(prevEntries => {
+      const updated = prevEntries.map(entry =>
         entry.id === id ? { ...entry, ...updatedFields } : entry
-      )
-    );
+      );
+      console.log('Updated entries after update:', updated);
+      return updated;
+    });
 
     // If user is authenticated, also update in Supabase
     if (user) {
@@ -182,7 +204,12 @@ const useJournalEntries = () => {
 
   // Delete an entry
   const deleteEntry = useCallback(async (id: string) => {
-    setEntries(prevEntries => prevEntries.filter(entry => entry.id !== id));
+    console.log('Deleting entry:', id);
+    setEntries(prevEntries => {
+      const filtered = prevEntries.filter(entry => entry.id !== id);
+      console.log('Entries after deletion:', filtered);
+      return filtered;
+    });
 
     // If user is authenticated, also delete from Supabase
     if (user) {

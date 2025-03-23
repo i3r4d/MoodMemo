@@ -140,7 +140,7 @@ const Journal = () => {
       
       const detectedMood = mood || await analyzeMood(text);
       
-      await addEntry({
+      const entryId = await addEntry({
         text,
         audioUrl: null,
         timestamp: new Date().toISOString(),
@@ -151,6 +151,8 @@ const Journal = () => {
         formatting,
         sentimentAnalysis: sentimentAnalysis,
       });
+      
+      console.log('Journal entry saved with ID:', entryId);
       
       toast({
         title: "Entry Saved",
@@ -578,6 +580,7 @@ const Journal = () => {
             ) : (
               <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="space-y-8">
+                  {console.log('Rendering entries:', entries)}
                   {groupEntriesByDay().map(group => (
                     <div key={group.date} className="space-y-3">
                       <h3 className="text-sm font-medium text-muted-foreground">
