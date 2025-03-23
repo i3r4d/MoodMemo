@@ -21,7 +21,7 @@ import {
   PlusIcon, 
   Menu,
   LightbulbIcon
-  LuDumbbell
+  DumbbellIcon
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -204,7 +204,7 @@ const Header: React.FC<HeaderProps> = ({ scrollY = 0 }) => {
                   to="/exercises"
                   className="flex items-center gap-4 px-2 py-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <LuDumbbell className="w-5 h-5 text-primary" />
+                  <DumbbellIcon className="w-5 h-5 text-primary" />
                   <span className="font-medium">Exercises</span>
                 </Link>
                 <Link
