@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -159,20 +158,15 @@ const useJournalStorage = () => {
       };
 
       // Add to local state first for immediate UI update
-      setEntries(prevEntries => {
-        console.log('Previous entries:', prevEntries);
-        const updatedEntries = [newEntry, ...prevEntries];
-        console.log('Updated entries:', updatedEntries);
-        return updatedEntries;
-      });
+      setEntries(prevEntries => [newEntry, ...prevEntries]);
 
-      // If user is authenticated, also save to Supabase
+      // If user is authenticated and premium, also save to Supabase
       if (user && isPremium && !localStorageOnly) {
         try {
           console.log('Saving entry to Supabase for user:', user.id);
           const { error } = await supabase
             .from('journal_entries')
-            .insert([{
+            .insert({
               id: newId,
               user_id: user.id,
               text: entry.text,
@@ -180,28 +174,36 @@ const useJournalStorage = () => {
               timestamp: entry.timestamp,
               mood: entry.mood,
               tags: entry.tags || []
-            }]);
+            });
           
           if (error) {
             console.error('Error saving journal entry to Supabase:', error);
             toast({
-              title: "Save Error",
-              description: "Your entry was saved locally but failed to sync to the cloud.",
+              title: "Sync Error",
+              description: "Your entry was saved locally but failed to sync to the cloud. We'll try again later.",
               variant: "destructive",
             });
+            
+            // Store failed sync entries for later retry
+            const failedSyncs = JSON.parse(localStorage.getItem('failed_syncs') || '[]');
+            failedSyncs.push({ ...newEntry, userId: user.id });
+            localStorage.setItem('failed_syncs', JSON.stringify(failedSyncs));
           } else {
-            console.log('Entry saved successfully to Supabase');
             toast({
               title: "Entry Saved",
-              description: "Your journal entry has been saved successfully.",
+              description: "Your journal entry has been saved and synced successfully.",
               variant: "default",
             });
           }
         } catch (error) {
           console.error('Exception in saving to Supabase:', error);
+          toast({
+            title: "Error",
+            description: "Failed to sync your entry. It's saved locally and we'll try again later.",
+            variant: "destructive",
+          });
         }
       } else {
-        console.log('User not authenticated or using local storage only, entry saved only locally');
         toast({
           title: "Entry Saved",
           description: "Your journal entry has been saved locally.",
@@ -259,6 +261,61 @@ const useJournalStorage = () => {
         console.error('Error in delete entry:', error);
       }
     }
+  }, [user, isPremium, localStorageOnly, toast]);
+
+  // Add a function to retry failed syncs
+  useEffect(() => {
+    const retrySyncs = async () => {
+      if (user && isPremium && !localStorageOnly) {
+        const failedSyncs = JSON.parse(localStorage.getItem('failed_syncs') || '[]');
+        if (failedSyncs.length === 0) return;
+
+        const successfulSyncs = [];
+        
+        for (const entry of failedSyncs) {
+          try {
+            const { error } = await supabase
+              .from('journal_entries')
+              .insert({
+                id: entry.id,
+                user_id: entry.userId,
+                text: entry.text,
+                audio_url: entry.audioUrl,
+                timestamp: entry.timestamp,
+                mood: entry.mood,
+                tags: entry.tags || []
+              });
+
+            if (!error) {
+              successfulSyncs.push(entry.id);
+            }
+          } catch (error) {
+            console.error('Error retrying sync:', error);
+          }
+        }
+
+        if (successfulSyncs.length > 0) {
+          const remainingFailedSyncs = failedSyncs.filter(
+            (entry: JournalEntry) => !successfulSyncs.includes(entry.id)
+          );
+          localStorage.setItem('failed_syncs', JSON.stringify(remainingFailedSyncs));
+
+          toast({
+            title: "Sync Complete",
+            description: `Successfully synced ${successfulSyncs.length} entries to the cloud.`,
+            variant: "default",
+          });
+        }
+      }
+    };
+
+    // Try to sync failed entries every 5 minutes
+    const syncInterval = setInterval(retrySyncs, 5 * 60 * 1000);
+    
+    // Also try immediately when the component mounts
+    retrySyncs();
+
+    return () => clearInterval(syncInterval);
   }, [user, isPremium, localStorageOnly, toast]);
 
   return {
