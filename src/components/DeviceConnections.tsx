@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
 import { Activity, Heart, Moon, Watch } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DeviceConnection {
   id: string;
@@ -12,29 +13,63 @@ interface DeviceConnection {
   token_expires_at: string;
 }
 
+// Mock device connections for demo purposes
+const mockConnections: DeviceConnection[] = [
+  {
+    id: '1',
+    device_type: 'apple_watch',
+    last_sync_at: new Date().toISOString(),
+    token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  }
+];
+
 const DeviceConnections: React.FC = () => {
   const [connections, setConnections] = useState<DeviceConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { isPremium } = useAuth();
+  
+  const [mockLoaded, setMockLoaded] = useState(false);
 
-  useEffect(() => {
-    fetchConnections();
-  }, []);
+  React.useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => {
+      if (isPremium) {
+        setConnections(mockConnections);
+      } else {
+        setConnections([]);
+      }
+      setIsLoading(false);
+      setMockLoaded(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [isPremium]);
 
-  const fetchConnections = async () => {
+  const handleConnect = async (deviceType: string) => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('device_connections')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setConnections(data || []);
-    } catch (error) {
-      console.error('Error fetching device connections:', error);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const newConnection: DeviceConnection = {
+        id: Date.now().toString(),
+        device_type: deviceType as 'fitbit' | 'apple_watch' | 'garmin',
+        last_sync_at: new Date().toISOString(),
+        token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      
+      setConnections([...connections, newConnection]);
+      
       toast({
-        title: 'Error',
-        description: 'Failed to fetch device connections. Please try again.',
+        title: 'Device Connected',
+        description: `Your ${getDeviceName(deviceType)} has been connected successfully.`,
+      });
+    } catch (error) {
+      console.error('Error connecting device:', error);
+      toast({
+        title: 'Connection Failed',
+        description: 'Could not connect to device. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -42,45 +77,14 @@ const DeviceConnections: React.FC = () => {
     }
   };
 
-  const handleConnect = async (deviceType: string) => {
-    try {
-      // Redirect to device-specific OAuth flow
-      const response = await supabase.functions.invoke('sync-wearable-data', {
-        body: {
-          device_type: deviceType,
-          action: 'connect'
-        }
-      });
-
-      if (response.error) throw response.error;
-
-      // Open OAuth URL in new window
-      window.open(response.data.auth_url, '_blank');
-
-      toast({
-        title: 'Device Connection',
-        description: 'Please complete the authentication in the new window.',
-      });
-    } catch (error) {
-      console.error('Error connecting device:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to connect device. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const handleDisconnect = async (deviceId: string) => {
+    setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('device_connections')
-        .delete()
-        .eq('id', deviceId);
-
-      if (error) throw error;
-
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       setConnections(connections.filter(conn => conn.id !== deviceId));
+      
       toast({
         title: 'Device Disconnected',
         description: 'Your device has been disconnected successfully.',
@@ -92,6 +96,8 @@ const DeviceConnections: React.FC = () => {
         description: 'Failed to disconnect device. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,22 +105,26 @@ const DeviceConnections: React.FC = () => {
     try {
       const connection = connections.find(conn => conn.id === deviceId);
       if (!connection) throw new Error('Device connection not found');
-
-      const { error } = await supabase.functions.invoke('sync-wearable-data', {
-        body: {
-          device_type: connection.device_type,
-          action: 'sync'
-        }
+      
+      toast({
+        title: 'Syncing...',
+        description: `Syncing data from your ${getDeviceName(connection.device_type)}...`,
       });
-
-      if (error) throw error;
-
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Update last sync time
+      setConnections(connections.map(conn => 
+        conn.id === deviceId 
+          ? { ...conn, last_sync_at: new Date().toISOString() } 
+          : conn
+      ));
+      
       toast({
         title: 'Sync Complete',
         description: 'Your device data has been synced successfully.',
       });
-
-      fetchConnections(); // Refresh connections to update last_sync_at
     } catch (error) {
       console.error('Error syncing device:', error);
       toast({
@@ -151,6 +161,37 @@ const DeviceConnections: React.FC = () => {
     }
   };
 
+  if (!isPremium) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Connected Devices
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 space-y-4">
+            <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto">
+              <Watch className="h-8 w-8 text-muted-foreground/60" />
+            </div>
+            <h3 className="font-medium text-lg">Premium Feature</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Connect your fitness tracker or smartwatch to sync health data with your journal entries.
+              Upgrade to premium to unlock this feature.
+            </p>
+            <Button className="mt-2" onClick={() => toast({
+              title: "Premium Required",
+              description: "Please upgrade to premium to use this feature.",
+            })}>
+              Upgrade to Premium
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -160,7 +201,7 @@ const DeviceConnections: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {isLoading && !mockLoaded ? (
           <div className="flex items-center justify-center py-8">
             <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
@@ -239,4 +280,4 @@ const DeviceConnections: React.FC = () => {
   );
 };
 
-export default DeviceConnections; 
+export default DeviceConnections;

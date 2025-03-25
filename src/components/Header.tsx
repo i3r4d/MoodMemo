@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -149,7 +150,7 @@ const Header: React.FC<HeaderProps> = ({ scrollY = 0 }) => {
                   </motion.button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate('/my-account')}>
+                  <DropdownMenuItem onClick={() => navigate('/settings?tab=account')}>
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>My Account</span>
                   </DropdownMenuItem>

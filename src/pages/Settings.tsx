@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -51,8 +52,14 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
+  const [activeTab, setActiveTab] = useState('general');
   
   useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['general', 'devices', 'account'].includes(tab)) {
+      setActiveTab(tab);
+    }
+    
     const paymentSuccess = searchParams.get('payment_success');
     if (paymentSuccess === 'true') {
       toast({
@@ -213,7 +220,7 @@ const Settings = () => {
       <div className="max-w-4xl mx-auto py-4 space-y-6">
         <h1 className="text-2xl font-bold">Settings</h1>
 
-        <Tabs defaultValue="general" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="devices">Devices</TabsTrigger>

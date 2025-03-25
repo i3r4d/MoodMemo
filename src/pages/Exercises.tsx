@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ExerciseCard, { Exercise } from '@/components/ExerciseCard';
@@ -6,12 +7,14 @@ import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { AlertTriangleIcon, LockIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Exercises = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { isPremium } = useAuth();
+  const navigate = useNavigate();
   
-  // Mock exercises data
+  // Exercises data
   const exercises: Exercise[] = [
     {
       id: '1',
@@ -115,10 +118,7 @@ const Exercises = () => {
         variant: "default",
       });
     } else {
-      toast({
-        title: "Starting Exercise",
-        description: `Starting ${exercise.title} (${exercise.duration} min)`,
-      });
+      navigate(`/exercises/${exercise.id}`);
     }
   };
   

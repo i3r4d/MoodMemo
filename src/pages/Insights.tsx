@@ -20,7 +20,8 @@ import {
   ZapIcon,
   ListChecksIcon,
   CalendarClockIcon,
-  LineChartIcon
+  LineChartIcon,
+  Dumbbell
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import HealthMetrics from '@/components/HealthMetrics';
 import ReportGenerator from '@/components/ReportGenerator';
 import { Progress } from '@/components/ui/progress';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import MoodDashboard from '@/components/MoodDashboard';
 import useJournalEntries from '@/hooks/useJournalEntries';
 import { cn } from '@/lib/utils';
@@ -66,7 +67,7 @@ const Insights = () => {
     unknown: 0
   });
   const [weeklyMoodData, setWeeklyMoodData] = useState<WeeklyMoodData[]>([]);
-  const { entries } = useJournalEntries();
+  const { entries, getMoodDistribution } = useJournalEntries();
 
   const maxFreeEntries = 14;
   const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
@@ -82,37 +83,41 @@ const Insights = () => {
         setEntryCount(entries.length);
         console.log("Setting entry count to:", entries.length);
         
-        const distribution: MoodDistribution = {
-          joy: 0,
-          calm: 0,
-          neutral: 0,
-          sad: 0,
-          stress: 0,
-          unknown: 0
-        };
-        
-        entries.forEach(entry => {
-          if (entry.mood) {
-            distribution[entry.mood as keyof MoodDistribution]++;
-          } else {
-            distribution.unknown++;
-          }
-        });
-        
+        // Get mood distribution from the useJournalEntries hook
+        const distribution = getMoodDistribution();
         console.log("Calculated mood distribution:", distribution);
         setMoodDistribution(distribution);
         
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const mockWeeklyData: WeeklyMoodData[] = days.map(day => ({
-          day,
-          joy: Math.floor(Math.random() * (distribution.joy || 1) + 1),
-          calm: Math.floor(Math.random() * (distribution.calm || 1) + 1),
-          neutral: Math.floor(Math.random() * (distribution.neutral || 1) + 1),
-          sad: Math.floor(Math.random() * (distribution.sad || 1) + 1),
-          stress: Math.floor(Math.random() * (distribution.stress || 1) + 1)
-        }));
+        // Process entries to create weekly mood data
+        const daysMap: Record<string, WeeklyMoodData> = {
+          'Mon': { day: 'Mon', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
+          'Tue': { day: 'Tue', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
+          'Wed': { day: 'Wed', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
+          'Thu': { day: 'Thu', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
+          'Fri': { day: 'Fri', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
+          'Sat': { day: 'Sat', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
+          'Sun': { day: 'Sun', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 }
+        };
         
-        setWeeklyMoodData(mockWeeklyData);
+        // Last 7 days only
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        entries.forEach(entry => {
+          const entryDate = new Date(entry.timestamp);
+          if (entryDate >= oneWeekAgo && entry.mood) {
+            const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][entryDate.getDay()];
+            if (daysMap[dayName] && entry.mood) {
+              daysMap[dayName][entry.mood as keyof Omit<WeeklyMoodData, 'day'>] += 1;
+            }
+          }
+        });
+        
+        // Convert the map to an array
+        const orderedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const weekData = orderedDays.map(day => daysMap[day]);
+        
+        setWeeklyMoodData(weekData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         toast({
@@ -126,7 +131,7 @@ const Insights = () => {
     };
     
     fetchDataForDashboard();
-  }, [user, entries, toast]);
+  }, [user, entries, toast, getMoodDistribution]);
   
   const handlePremiumClick = () => {
     navigate('/settings');
@@ -209,6 +214,40 @@ const Insights = () => {
     if (trend < 0) return "declining";
     return "stable";
   };
+  
+  // Function to determine the recommended exercise based on user mood patterns
+  const getRecommendedExercise = () => {
+    // Default exercise
+    let recommendedExercise = "Deep Breathing";
+    
+    // Check dominant mood to make recommendations
+    if (Object.keys(moodDistribution).length > 0) {
+      const dominantMood = Object.entries(moodDistribution)
+        .filter(([mood]) => mood !== 'unknown')
+        .sort(([, a], [, b]) => b - a)[0];
+      
+      if (dominantMood) {
+        switch(dominantMood[0]) {
+          case 'stress':
+            recommendedExercise = "Progressive Muscle Relaxation";
+            break;
+          case 'sad':
+            recommendedExercise = "Loving-Kindness Meditation";
+            break;
+          case 'joy':
+            recommendedExercise = "Mindful Walking";
+            break;
+          case 'calm':
+            recommendedExercise = "Body Scan Meditation";
+            break;
+          default:
+            recommendedExercise = "Deep Breathing";
+        }
+      }
+    }
+    
+    return recommendedExercise;
+  };
 
   return (
     <AnimatedTransition keyValue="insights">
@@ -228,6 +267,7 @@ const Insights = () => {
           </div>
         </div>
         
+        {/* Unified AI Insights Card */}
         <motion.div 
           variants={{
             hidden: { opacity: 0, y: 20 },
@@ -235,11 +275,11 @@ const Insights = () => {
           }}
           initial="hidden"
           animate="visible"
-          className="glass-morphism mood-journal-card space-y-3"
+          className="glass-morphism mood-journal-card space-y-4"
         >
           <h3 className="text-lg font-medium flex items-center">
-            <LightbulbIcon className="h-5 w-5 text-primary mr-2" />
-            AI Insights
+            <Brain className="h-5 w-5 text-primary mr-2" />
+            AI Insights & Recommendations
           </h3>
           
           <div className={cn(
@@ -299,6 +339,28 @@ const Insights = () => {
                     "Reflecting on positive moments, even small ones, can help strengthen your resilience."
                   }
                 </p>
+              </div>
+            </div>
+          )}
+          
+          {entries.length > 0 && (
+            <div className="p-4 rounded-lg border border-secondary/20 bg-secondary/5 flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Dumbbell className="h-4 w-4 text-secondary-foreground" />
+              </div>
+              
+              <div className="space-y-1 text-sm leading-relaxed">
+                <p className="font-medium">Recommended Exercise</p>
+                <p>Based on your mood patterns, we recommend trying the <span className="font-medium text-primary">{getRecommendedExercise()}</span> exercise.</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => navigate('/exercises')}
+                >
+                  <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
+                  Try this exercise
+                </Button>
               </div>
             </div>
           )}

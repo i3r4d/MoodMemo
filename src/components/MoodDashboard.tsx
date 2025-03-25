@@ -67,6 +67,36 @@ const MoodDashboard: React.FC<MoodDashboardProps> = ({
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
+  
+  // Get the most recent day with entries
+  const getMostRecentDay = () => {
+    if (weeklyMoodData.length === 0) return 'N/A';
+    
+    const daysWithEntries = weeklyMoodData.filter(day => 
+      day.joy > 0 || day.calm > 0 || day.neutral > 0 || day.sad > 0 || day.stress > 0
+    );
+    
+    if (daysWithEntries.length === 0) return 'N/A';
+    
+    // Get the most recent day (based on day order)
+    const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const todayIndex = (today + 6) % 7; // Convert to 0 = Monday, 1 = Tuesday, etc.
+    
+    // Reorder days so today is last (most recent)
+    const reorderedDays = [
+      ...dayOrder.slice(todayIndex + 1),
+      ...dayOrder.slice(0, todayIndex + 1)
+    ];
+    
+    // Find the most recent day with entries
+    for (const day of reorderedDays) {
+      const dayData = daysWithEntries.find(d => d.day === day);
+      if (dayData) return day;
+    }
+    
+    return daysWithEntries[daysWithEntries.length - 1].day;
+  };
 
   return (
     <motion.div
@@ -90,9 +120,9 @@ const MoodDashboard: React.FC<MoodDashboardProps> = ({
           </div>
           
           <div className="bg-secondary/30 rounded-xl p-4 text-center">
-            <p className="text-sm text-muted-foreground">Most Recent</p>
+            <p className="text-sm text-muted-foreground">Most Recent Day</p>
             <p className="text-2xl font-semibold mt-1">
-              {entriesCount > 0 ? weeklyMoodData[weeklyMoodData.length - 1]?.day : 'N/A'}
+              {getMostRecentDay()}
             </p>
           </div>
         </div>
@@ -179,8 +209,8 @@ const MoodDashboard: React.FC<MoodDashboardProps> = ({
           </div>
           
           <div className="space-y-1 text-sm leading-relaxed">
-            <p>Based on your journal entries, you've been experiencing more <span className="font-medium text-primary">calm moments</span> this week compared to last week.</p>
-            <p>Try the new guided breathing exercise to maintain this positive trend.</p>
+            <p>Your entries show a pattern of {getDominantMood() === 'Joy' ? 'positive' : getDominantMood() === 'Calm' ? 'relaxed' : getDominantMood() === 'Neutral' ? 'balanced' : getDominantMood() === 'Sad' ? 'melancholic' : 'anxious'} emotions this week.</p>
+            <p>Consider trying the {getDominantMood() === 'Stress' ? 'Progressive Muscle Relaxation' : getDominantMood() === 'Sad' ? 'Loving-Kindness Meditation' : 'Deep Breathing'} exercise to maintain emotional well-being.</p>
           </div>
         </div>
         
@@ -192,8 +222,8 @@ const MoodDashboard: React.FC<MoodDashboardProps> = ({
           </div>
           
           <div className="space-y-1 text-sm leading-relaxed">
-            <p>Notice your journaling is most consistent in the <span className="font-medium">evenings</span>.</p>
-            <p>Maintaining this routine has been shown to improve sleep quality and reduce next-day anxiety.</p>
+            <p>Your journaling is most consistent in the {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}.</p>
+            <p>Maintaining this routine has been shown to improve emotional awareness and reduce anxiety over time.</p>
           </div>
         </div>
       </motion.div>
