@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -20,7 +19,6 @@ const useJournalEntries = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Load entries from localStorage or Supabase on mount
   useEffect(() => {
     const loadEntries = async () => {
       try {
@@ -28,7 +26,6 @@ const useJournalEntries = () => {
         console.log('Loading entries, user:', user);
         
         if (user) {
-          // Try to load from Supabase first
           console.log('Attempting to load entries from Supabase for user:', user.id);
           const { data, error } = await supabase
             .from('journal_entries')
@@ -38,11 +35,9 @@ const useJournalEntries = () => {
           
           if (error) {
             console.error('Error loading entries from Supabase:', error);
-            // Fall back to localStorage
             loadFromLocalStorage();
           } else if (data && data.length > 0) {
             console.log('Loaded entries from Supabase:', data);
-            // Format the data
             const formattedEntries = data.map(entry => ({
               id: entry.id,
               text: entry.text,
@@ -56,7 +51,6 @@ const useJournalEntries = () => {
             loadFromLocalStorage();
           }
         } else {
-          // If not logged in, load from localStorage
           console.log('User not logged in, loading from localStorage');
           loadFromLocalStorage();
         }
@@ -88,7 +82,6 @@ const useJournalEntries = () => {
     loadEntries();
   }, [user]);
 
-  // Save entries to localStorage whenever they change
   useEffect(() => {
     if (!isLoading) {
       console.log('Saving entries to localStorage:', entries);
@@ -96,7 +89,6 @@ const useJournalEntries = () => {
     }
   }, [entries, isLoading]);
 
-  // Add a new entry
   const addEntry = useCallback(async (entry: Omit<JournalEntry, 'id'>) => {
     try {
       console.log('Adding new entry:', entry);
@@ -106,7 +98,6 @@ const useJournalEntries = () => {
         id: newId,
       };
 
-      // Add to local state first for immediate UI update
       setEntries(prevEntries => {
         console.log('Previous entries:', prevEntries);
         const updatedEntries = [newEntry, ...prevEntries];
@@ -114,7 +105,6 @@ const useJournalEntries = () => {
         return updatedEntries;
       });
 
-      // If user is authenticated, also save to Supabase
       if (user) {
         try {
           console.log('Saving entry to Supabase for user:', user.id);
@@ -168,7 +158,6 @@ const useJournalEntries = () => {
     }
   }, [user, toast]);
 
-  // Update an existing entry
   const updateEntry = useCallback(async (updatedEntry: JournalEntry) => {
     console.log('Updating entry:', updatedEntry);
     setEntries(prevEntries => {
@@ -179,7 +168,6 @@ const useJournalEntries = () => {
       return updated;
     });
 
-    // If user is authenticated, also update in Supabase
     if (user) {
       try {
         const { error } = await supabase
@@ -202,7 +190,6 @@ const useJournalEntries = () => {
     }
   }, [user]);
 
-  // Delete an entry
   const deleteEntry = useCallback(async (id: string) => {
     console.log('Deleting entry:', id);
     setEntries(prevEntries => {
@@ -211,7 +198,6 @@ const useJournalEntries = () => {
       return filtered;
     });
 
-    // If user is authenticated, also delete from Supabase
     if (user) {
       try {
         const { error } = await supabase
@@ -229,13 +215,11 @@ const useJournalEntries = () => {
     }
   }, [user]);
 
-  // Get an entry by ID
   const getEntryById = useCallback(
     (id: string) => entries.find(entry => entry.id === id) || null,
     [entries]
   );
 
-  // Get entries for a specific time period
   const getEntriesByTimePeriod = useCallback(
     (startDate: Date, endDate: Date) => {
       return entries.filter(entry => {
@@ -246,7 +230,6 @@ const useJournalEntries = () => {
     [entries]
   );
 
-  // Calculate mood distribution
   const getMoodDistribution = useCallback(() => {
     const distribution = {
       joy: 0,

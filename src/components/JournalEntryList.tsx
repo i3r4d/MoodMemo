@@ -2,22 +2,50 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Edit, Calendar, SearchIcon, XCircleIcon } from 'lucide-react';
+import { Edit, Calendar, SearchIcon, XCircleIcon, Trash2, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import useJournalEntries from '@/hooks/useJournalEntries';
+import { useToast } from '@/hooks/use-toast';
 
 const JournalEntryList = () => {
   const navigate = useNavigate();
-  const { entries } = useJournalEntries();
+  const { entries, deleteEntry } = useJournalEntries();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
   
   const handleEntryClick = (id: string) => {
     navigate(`/journal/${id}`);
+  };
+  
+  const handleDeleteEntry = (id: string) => {
+    deleteEntry(id);
+    toast({
+      title: "Entry deleted",
+      description: "Your journal entry has been deleted successfully.",
+    });
+    setEntryToDelete(null);
   };
   
   const filteredEntries = entries.filter(entry => 
@@ -118,11 +146,10 @@ const JournalEntryList = () => {
                 transition={{ duration: 0.2 }}
               >
                 <Card 
-                  className="cursor-pointer hover:shadow-md transition-shadow border-primary/10 overflow-hidden"
-                  onClick={() => handleEntryClick(entry.id)}
+                  className="hover:shadow-md transition-shadow border-primary/10 overflow-hidden"
                 >
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 to-primary/20"></div>
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 cursor-pointer" onClick={() => handleEntryClick(entry.id)}>
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-medium text-base">{entry.text.split('\n')[0]}</h3>
                       <div className="flex items-center space-x-2">
@@ -140,16 +167,53 @@ const JournalEntryList = () => {
                       <Calendar className="h-3 w-3" />
                       <span>{format(new Date(entry.timestamp), 'PPP')}</span>
                     </div>
-                    <Button size="sm" variant="ghost" className="h-6 gap-1">
-                      <Edit className="h-3 w-3" />
-                      <span>Edit</span>
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-6 gap-1"
+                        onClick={() => handleEntryClick(entry.id)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        <span>Edit</span>
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-6 gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => setEntryToDelete(entry.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        <span>Delete</span>
+                      </Button>
+                    </div>
                   </CardFooter>
                 </Card>
               </motion.div>
             ))}
         </motion.div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!entryToDelete} onOpenChange={() => setEntryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this journal entry. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => entryToDelete && handleDeleteEntry(entryToDelete)}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

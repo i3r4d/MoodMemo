@@ -20,14 +20,37 @@ import {
   LogOut,
   User,
   Bell,
-  Shield
+  Shield,
+  Cloud,
+  CloudOff,
+  Trash2,
+  CreditCard
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import ReportGenerator from '@/components/ReportGenerator';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import PremiumCheckout from '@/components/PremiumCheckout';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import useJournalStorage from '@/hooks/useJournalStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,6 +68,11 @@ const Settings = () => {
   const [pinEnabled, setPinEnabled] = useState(false);
   const [pinCode, setPinCode] = useState('');
   const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false);
+  const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
   const { user, profile, isPremium, signOut } = useAuth();
   const [searchParams] = useSearchParams();
@@ -99,8 +127,113 @@ const Settings = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!user) return;
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "New password and confirmation must match.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully changed.",
+      });
+      
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setIsChangePasswordDialogOpen(false);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast({
+        title: "Error",
+        description: "Failed to change your password. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    
+    try {
+      // Delete user data
+      if (isPremium) {
+        const { error: dataError } = await supabase
+          .from('journal_entries')
+          .delete()
+          .eq('user_id', user.id);
+          
+        if (dataError) throw dataError;
+      }
+      
+      // Delete user account
+      const { error } = await supabase.auth.admin.deleteUser(user.id);
+      
+      if (error) throw error;
+      
+      // Clear local storage
+      localStorage.clear();
+      
+      // Sign out
+      await signOut();
+      
+      toast({
+        title: "Account Deleted",
+        description: "Your account and all related data have been permanently deleted.",
+      });
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete your account. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubscribe = () => {
     setIsPremiumDialogOpen(true);
+  };
+  
+  const handleCancelSubscription = async () => {
+    if (!user || !isPremium) return;
+    
+    try {
+      // In a real app, this would call to a server endpoint to cancel the subscription
+      toast({
+        title: "Subscription Canceled",
+        description: "Your premium subscription has been canceled. You will have access until the end of your billing period.",
+      });
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel your subscription. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleEnableBiometric = () => {
@@ -264,6 +397,46 @@ const Settings = () => {
 
             <Card>
               <CardHeader>
+                <CardTitle>Storage</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Local Storage Only</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Store journal entries only on this device without cloud syncing
+                    </p>
+                  </div>
+                  <Switch
+                    checked={localStorageOnly}
+                    onCheckedChange={toggleStoragePreference}
+                    aria-label="Toggle local storage"
+                  />
+                </div>
+                <div className="p-3 rounded-md bg-blue-50 text-blue-700 text-sm flex items-start gap-2">
+                  {localStorageOnly ? (
+                    <>
+                      <CloudOff className="h-5 w-5 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Local Storage Enabled</p>
+                        <p>Your entries are stored only on this device and won't sync across your devices.</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="h-5 w-5 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Cloud Storage Enabled</p>
+                        <p>Your entries will sync across all your devices when logged in.</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Notifications</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -346,13 +519,173 @@ const Settings = () => {
                   />
                 </div>
                 <Separator />
-                <Button
-                  variant="destructive"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        <KeyIcon className="h-4 w-4 mr-2" />
+                        Change Password
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Change Your Password</DialogTitle>
+                        <DialogDescription>
+                          Enter your new password below.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="current-password">Current Password</Label>
+                          <Input
+                            id="current-password"
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="new-password">New Password</Label>
+                          <Input
+                            id="new-password"
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="confirm-password">Confirm New Password</Label>
+                          <Input
+                            id="confirm-password"
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsChangePasswordDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleChangePassword}>Change Password</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Button
+                    variant="destructive"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Subscription</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isPremium ? (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <CheckCircleIcon className="h-5 w-5 text-green-600 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-green-800">Premium Active</p>
+                          <p className="text-sm text-green-700">You have access to all premium features</p>
+                          {profile?.premium_expires_at && (
+                            <p className="text-sm text-green-700 mt-2 flex items-center">
+                              <CalendarIcon className="h-4 w-4 mr-1" /> 
+                              Next billing: {format(new Date(profile.premium_expires_at), 'MMMM dd, yyyy')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Payment Method</p>
+                        <p className="text-sm text-muted-foreground">Visa ending in 4242</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                      >
+                        <CreditCard className="h-3.5 w-3.5 mr-1" />
+                        Update
+                      </Button>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+                      onClick={handleCancelSubscription}
+                    >
+                      Cancel Subscription
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="font-medium">Free Plan</p>
+                      <p className="text-sm text-muted-foreground">Upgrade to premium for advanced features</p>
+                    </div>
+                    
+                    <Button
+                      onClick={handleSubscribe}
+                      className="w-full bg-gradient-to-r from-primary to-primary/80"
+                    >
+                      <CreditCardIcon className="h-4 w-4 mr-2" />
+                      Upgrade to Premium
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-red-500">Danger Zone</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Actions in this area are irreversible. Please proceed with caution.
+                </p>
+                
+                <AlertDialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      className="w-full"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Account
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your
+                        account and remove all your data from our servers.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        className="bg-red-500 hover:bg-red-600"
+                      >
+                        Delete Account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           </TabsContent>

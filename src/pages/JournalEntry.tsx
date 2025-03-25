@@ -19,7 +19,7 @@ const JournalEntry = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { entries, addEntry, updateEntry, deleteEntry } = useJournalEntries();
+  const { entries, addEntry, updateEntry, deleteEntry, getEntryById } = useJournalEntries();
   const isNewEntry = id === 'new' || !id;
   
   const [text, setText] = useState('');
@@ -29,7 +29,9 @@ const JournalEntry = () => {
   
   useEffect(() => {
     if (!isNewEntry && id) {
-      const entry = entries.find(e => e.id === id);
+      // Use direct lookup function from the hook instead of filtering entries
+      const entry = getEntryById(id);
+      
       if (entry) {
         setText(entry.text || '');
         setMood(entry.mood || null);
@@ -43,7 +45,7 @@ const JournalEntry = () => {
         navigate('/journal');
       }
     }
-  }, [id, entries, navigate, isNewEntry, toast]);
+  }, [id, isNewEntry, navigate, toast, getEntryById]);
   
   const handleSave = async () => {
     if (!text.trim()) {
