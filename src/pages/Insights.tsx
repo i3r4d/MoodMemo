@@ -85,6 +85,8 @@ const Insights = () => {
       try {
         setIsLoading(true);
         
+        let currentDate = new Date();
+        
         setEntryCount(entries.length);
         console.log("Setting entry count to:", entries.length);
         
