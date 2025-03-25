@@ -47,7 +47,11 @@ const MoodPicker: React.FC<MoodPickerProps> = ({ selected, onSelect }) => {
       case 'neutral': return 'Neutral';
       case 'sad': return 'Sad';
       case 'stress': return 'Stressed';
-      default: return mood.charAt(0).toUpperCase() + mood.slice(1);
+      default: {
+        // Explicitly handle the string as MoodType
+        const moodStr = String(mood);
+        return moodStr.charAt(0).toUpperCase() + moodStr.slice(1);
+      }
     }
   };
 
