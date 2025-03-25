@@ -169,11 +169,11 @@ const useJournalEntries = () => {
   }, [user, toast]);
 
   // Update an existing entry
-  const updateEntry = useCallback(async (id: string, updatedFields: Partial<JournalEntry>) => {
-    console.log('Updating entry:', id, updatedFields);
+  const updateEntry = useCallback(async (updatedEntry: JournalEntry) => {
+    console.log('Updating entry:', updatedEntry);
     setEntries(prevEntries => {
       const updated = prevEntries.map(entry =>
-        entry.id === id ? { ...entry, ...updatedFields } : entry
+        entry.id === updatedEntry.id ? { ...updatedEntry } : entry
       );
       console.log('Updated entries after update:', updated);
       return updated;
@@ -185,12 +185,12 @@ const useJournalEntries = () => {
         const { error } = await supabase
           .from('journal_entries')
           .update({
-            text: updatedFields.text,
-            audio_url: updatedFields.audioUrl,
-            mood: updatedFields.mood,
-            timestamp: updatedFields.timestamp
+            text: updatedEntry.text,
+            audio_url: updatedEntry.audioUrl,
+            mood: updatedEntry.mood,
+            timestamp: updatedEntry.timestamp
           })
-          .eq('id', id)
+          .eq('id', updatedEntry.id)
           .eq('user_id', user.id);
         
         if (error) {

@@ -21,8 +21,7 @@ const JournalEntryList = () => {
   };
   
   const filteredEntries = entries.filter(entry => 
-    entry.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    entry.content.toLowerCase().includes(searchTerm.toLowerCase())
+    entry.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const itemVariants = {
@@ -125,7 +124,7 @@ const JournalEntryList = () => {
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 to-primary/20"></div>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-base">{entry.title}</h3>
+                      <h3 className="font-medium text-base">{entry.text.split('\n')[0]}</h3>
                       <div className="flex items-center space-x-2">
                         {entry.mood && (
                           <Badge variant="outline" className={cn("text-xs font-normal", getMoodColor(entry.mood))}>
@@ -134,7 +133,7 @@ const JournalEntryList = () => {
                         )}
                       </div>
                     </div>
-                    <p className="text-muted-foreground text-sm line-clamp-2">{entry.content}</p>
+                    <p className="text-muted-foreground text-sm line-clamp-2">{entry.text}</p>
                   </CardContent>
                   <CardFooter className="px-4 py-2 border-t text-xs text-muted-foreground flex justify-between items-center">
                     <div className="flex items-center gap-1">

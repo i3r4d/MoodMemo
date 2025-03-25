@@ -2,16 +2,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { MoodType, getMoodColor, getMoodDescription } from '@/utils/moodAnalysis';
+import { MoodType } from '@/types/journal';
 
 interface MoodPickerProps {
-  selected: MoodType | null;
-  onSelect: (mood: MoodType | null) => void;
+  selected: string | null;
+  onSelect: (mood: string | null) => void;
 }
 
 const MoodPicker: React.FC<MoodPickerProps> = ({ selected, onSelect }) => {
-  // Available moods from the MoodType
-  const moods: MoodType[] = ['joy', 'calm', 'neutral', 'sad', 'stress'];
+  // Available moods
+  const moods: string[] = ['joy', 'calm', 'neutral', 'sad', 'stress'];
 
   // Variants for animation
   const containerVariants = {
@@ -27,6 +27,28 @@ const MoodPicker: React.FC<MoodPickerProps> = ({ selected, onSelect }) => {
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0 },
+  };
+
+  const getMoodColor = (mood: string) => {
+    switch(mood) {
+      case 'joy': return '#4ade80';
+      case 'calm': return '#60a5fa';
+      case 'neutral': return '#9ca3af';
+      case 'sad': return '#fbbf24';
+      case 'stress': return '#f87171';
+      default: return '#9ca3af';
+    }
+  };
+
+  const getMoodDescription = (mood: string) => {
+    switch(mood) {
+      case 'joy': return 'Joyful';
+      case 'calm': return 'Calm';
+      case 'neutral': return 'Neutral';
+      case 'sad': return 'Sad';
+      case 'stress': return 'Stressed';
+      default: return mood.charAt(0).toUpperCase() + mood.slice(1);
+    }
   };
 
   return (

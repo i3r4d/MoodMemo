@@ -21,8 +21,7 @@ const JournalEntry = () => {
   const { entries, addEntry, updateEntry, deleteEntry } = useJournalEntries();
   const isNewEntry = id === 'new' || !id;
   
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [text, setText] = useState('');
   const [mood, setMood] = useState<string | null>(null);
   const [date, setDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(false);
@@ -31,8 +30,7 @@ const JournalEntry = () => {
     if (!isNewEntry && id) {
       const entry = entries.find(e => e.id === id);
       if (entry) {
-        setTitle(entry.title || '');
-        setContent(entry.content || '');
+        setText(entry.text || '');
         setMood(entry.mood || null);
         setDate(new Date(entry.timestamp));
       } else {
@@ -47,10 +45,10 @@ const JournalEntry = () => {
   }, [id, entries, navigate, isNewEntry, toast]);
   
   const handleSave = async () => {
-    if (!title.trim()) {
+    if (!text.trim()) {
       toast({
-        title: "Title required",
-        description: "Please add a title for your journal entry.",
+        title: "Text required",
+        description: "Please add text for your journal entry.",
         variant: "destructive",
       });
       return;
@@ -61,8 +59,8 @@ const JournalEntry = () => {
     try {
       const entryData = {
         id: isNewEntry ? crypto.randomUUID() : id!,
-        title,
-        content,
+        text,
+        audioUrl: null,
         mood,
         timestamp: date.toISOString(),
       };
@@ -160,9 +158,9 @@ const JournalEntry = () => {
         <div className="space-y-6">
           <div>
             <Input
-              placeholder="Entry Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Journal Entry"
+              value={text.split('\n')[0] || ''}
+              onChange={(e) => setText(e.target.value ? e.target.value + (text.indexOf('\n') > -1 ? text.substring(text.indexOf('\n')) : '') : '')}
               className="text-lg font-semibold border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>
@@ -171,8 +169,8 @@ const JournalEntry = () => {
             <div>
               <p className="text-sm font-medium mb-1.5">How are you feeling?</p>
               <MoodPicker 
-                selectedMood={mood} 
-                onSelectMood={setMood} 
+                selected={mood} 
+                onSelect={setMood} 
               />
             </div>
             
@@ -206,8 +204,8 @@ const JournalEntry = () => {
           <div>
             <Textarea
               placeholder="Write your journal entry here..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
               className="min-h-[300px] resize-none"
             />
           </div>
