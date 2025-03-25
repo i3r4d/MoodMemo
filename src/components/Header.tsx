@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -21,7 +20,7 @@ import {
   PlusIcon, 
   Menu,
   LightbulbIcon,
-  DumbbellIcon
+  Dumbbell
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -129,7 +128,6 @@ const Header: React.FC<HeaderProps> = ({ scrollY = 0 }) => {
             </motion.button>
           )}
           
-          {/* Desktop Navigation - Hidden on Mobile */}
           <div className="hidden md:flex items-center gap-2">
             {isAuthenticated && (
               <DropdownMenu>
@@ -169,7 +167,6 @@ const Header: React.FC<HeaderProps> = ({ scrollY = 0 }) => {
             )}
           </div>
           
-          {/* Mobile Navigation */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -204,7 +201,7 @@ const Header: React.FC<HeaderProps> = ({ scrollY = 0 }) => {
                   to="/exercises"
                   className="flex items-center gap-4 px-2 py-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <DumbbellIcon className="w-5 h-5 text-primary" />
+                  <Dumbbell className="w-5 h-5 text-primary" />
                   <span className="font-medium">Exercises</span>
                 </Link>
                 <Link

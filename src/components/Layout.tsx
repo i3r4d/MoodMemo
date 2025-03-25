@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -10,7 +9,7 @@ import {
   HomeIcon, 
   BookIcon, 
   SettingsIcon, 
-  DumbbellIcon,
+  Dumbbell,
   LightbulbIcon
 } from 'lucide-react';
 
@@ -56,7 +55,7 @@ const Layout = ({ children }: LayoutProps) => {
     {
       href: '/exercises',
       label: 'Exercises',
-      icon: DumbbellIcon,
+      icon: Dumbbell,
       active: location.pathname === '/exercises'
     },
     {
