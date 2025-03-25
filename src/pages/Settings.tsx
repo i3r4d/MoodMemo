@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -35,6 +34,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -314,7 +314,7 @@ const Settings = () => {
     const dataStr = JSON.stringify(mockData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `moodmemo-export-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    const exportFileDefaultName = `moodmemo-export-${format(new Date(), 'yyyy-MM-dd')}.json';
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
