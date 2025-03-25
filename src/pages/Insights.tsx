@@ -21,7 +21,11 @@ import {
   ListChecksIcon,
   CalendarClockIcon,
   LineChartIcon,
-  Dumbbell
+  Dumbbell,
+  BookOpen,
+  Sparkles,
+  LayoutList,
+  CheckCircle2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -68,6 +72,8 @@ const Insights = () => {
   });
   const [weeklyMoodData, setWeeklyMoodData] = useState<WeeklyMoodData[]>([]);
   const { entries, getMoodDistribution } = useJournalEntries();
+  const [consecutiveDays, setConsecutiveDays] = useState(0);
+  const [longestWritingStreak, setLongestWritingStreak] = useState(0);
 
   const maxFreeEntries = 14;
   const entryProgress = Math.min((entryCount / maxFreeEntries) * 100, 100);
@@ -98,6 +104,49 @@ const Insights = () => {
           'Sat': { day: 'Sat', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
           'Sun': { day: 'Sun', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 }
         };
+        
+        // Calculate consecutive days and streak
+        let streak = 0;
+        let maxStreak = 0;
+        
+        if (entries.length > 0) {
+          // Sort entries by timestamp
+          const sortedEntries = [...entries].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          // Calculate streaks
+          let currentDate = new Date();
+          let streakBroken = false;
+          
+          for (let i = sortedEntries.length - 1; i >= 0; i--) {
+            const entryDate = new Date(sortedEntries[i].timestamp);
+            const diff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (!streakBroken && (diff === 0 || diff === 1)) {
+              streak++;
+              currentDate = entryDate;
+            } else {
+              streakBroken = true;
+            }
+            
+            // Calculate maximum streak
+            if (i > 0) {
+              const prevDate = new Date(sortedEntries[i-1].timestamp);
+              const dateDiff = Math.floor((entryDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (dateDiff === 1) {
+                maxStreak++;
+              } else {
+                maxStreak = Math.max(maxStreak, streak);
+                streak = 1;
+              }
+            }
+          }
+        }
+        
+        setConsecutiveDays(streak);
+        setLongestWritingStreak(Math.max(maxStreak, streak));
         
         // Last 7 days only
         const oneWeekAgo = new Date();
@@ -215,6 +264,31 @@ const Insights = () => {
     return "stable";
   };
   
+  // Function to get the most common trigger words
+  const getMostCommonTriggers = () => {
+    if (entries.length === 0) return [];
+    
+    // Extract words from content that might be triggers
+    const commonTriggerWords = ['work', 'stress', 'family', 'sleep', 'exercise', 'meditation', 'food', 'friends', 'social', 'weather'];
+    const wordCounts: Record<string, number> = {};
+    
+    entries.forEach(entry => {
+      if (entry.content) {
+        const lowerContent = entry.content.toLowerCase();
+        commonTriggerWords.forEach(word => {
+          if (lowerContent.includes(word)) {
+            wordCounts[word] = (wordCounts[word] || 0) + 1;
+          }
+        });
+      }
+    });
+    
+    return Object.entries(wordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([word]) => word);
+  };
+  
   // Function to determine the recommended exercise based on user mood patterns
   const getRecommendedExercise = () => {
     // Default exercise
@@ -249,6 +323,39 @@ const Insights = () => {
     return recommendedExercise;
   };
 
+  // Calculate sleep impact if mentioned in entries
+  const getSleepInsight = () => {
+    const sleepMentions = entries.filter(entry => 
+      entry.content && entry.content.toLowerCase().includes("sleep")
+    );
+    
+    if (sleepMentions.length === 0) return null;
+    
+    const goodSleepEntries = sleepMentions.filter(entry => 
+      entry.content && 
+      (entry.content.toLowerCase().includes("good sleep") || 
+       entry.content.toLowerCase().includes("slept well"))
+    );
+    
+    const goodSleepRatio = goodSleepEntries.length / sleepMentions.length;
+    
+    // Check if good sleep correlates with positive moods
+    const goodSleepWithPositiveMood = goodSleepEntries.filter(entry => 
+      entry.mood === "joy" || entry.mood === "calm"
+    ).length;
+    
+    const sleepMoodCorrelation = goodSleepEntries.length > 0 ? 
+      goodSleepWithPositiveMood / goodSleepEntries.length : 0;
+    
+    if (sleepMoodCorrelation > 0.7) {
+      return "Quality sleep appears to have a strong positive impact on your mood";
+    } else if (goodSleepRatio < 0.3) {
+      return "You've mentioned sleep issues in several entries. Improving sleep quality may help your overall mood";
+    }
+    
+    return "Sleep appears in your journal regularly - maintaining good sleep hygiene can benefit your mental health";
+  };
+
   return (
     <AnimatedTransition keyValue="insights">
       <div className="max-w-3xl mx-auto py-4 space-y-6">
@@ -267,7 +374,7 @@ const Insights = () => {
           </div>
         </div>
         
-        {/* Unified AI Insights Card */}
+        {/* Enhanced AI Insights Section with more comprehensive details */}
         <motion.div 
           variants={{
             hidden: { opacity: 0, y: 20 },
@@ -282,114 +389,186 @@ const Insights = () => {
             AI Insights & Recommendations
           </h3>
           
-          <div className={cn(
-            "p-4 rounded-lg border border-primary/20 bg-primary/5",
-            "flex items-start gap-3"
-          )}>
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              {getWritingTimePattern() === "morning" ? (
-                <SunIcon className="h-4 w-4 text-primary" />
-              ) : getWritingTimePattern() === "evening" ? (
-                <MoonIcon className="h-4 w-4 text-primary" />
-              ) : (
-                <CalendarClockIcon className="h-4 w-4 text-primary" />
-              )}
+          {entries.length === 0 ? (
+            <div className="p-4 rounded-lg border border-secondary/20 bg-secondary/5">
+              <div className="flex flex-col items-center gap-4 py-8">
+                <BookOpen className="h-10 w-10 text-muted-foreground/50" />
+                <div className="text-center">
+                  <h4 className="text-base font-medium mb-2">No Journal Entries Yet</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Start journaling to receive personalized insights about your moods, habits, and emotional patterns.
+                  </p>
+                  <Button onClick={() => navigate('/journal/new')}>
+                    Create Your First Entry
+                  </Button>
+                </div>
+              </div>
             </div>
-            
-            <div className="space-y-1 text-sm leading-relaxed">
-              <p className="font-medium">Writing Pattern Analysis</p>
-              <p>Your journaling is most consistent in the <span className="font-medium text-primary">{getWritingTimePattern()}</span>.</p>
-              <p>Maintaining this routine helps establish a healthy reflection habit. {
-                getWritingTimePattern() === "evening" ? 
-                "Evening journaling has been shown to improve sleep quality and reduce next-day anxiety." :
-                getWritingTimePattern() === "morning" ? 
-                "Morning journaling can set a positive tone for your day and improve focus." :
-                "Consistent journaling at any time helps build self-awareness."
-              }</p>
-            </div>
-          </div>
-          
-          {entries.length > 0 && (
-            <div className="p-4 rounded-lg border border-accent/20 bg-accent/5 flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                {getMoodTrend() === "improving" ? (
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                ) : getMoodTrend() === "declining" ? (
-                  <LineChartIcon className="h-4 w-4 text-amber-600" />
-                ) : (
-                  <Activity className="h-4 w-4 text-accent-foreground" />
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <div className="bg-primary/5 border border-primary/10 px-3 py-1 rounded-full text-sm flex items-center">
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                  {entries.length} {entries.length === 1 ? 'entry' : 'entries'} analyzed
+                </div>
+                {consecutiveDays > 1 && (
+                  <div className="bg-amber-50 border border-amber-100 px-3 py-1 rounded-full text-sm flex items-center">
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-amber-600" />
+                    {consecutiveDays} day streak
+                  </div>
+                )}
+                {longestWritingStreak > 3 && (
+                  <div className="bg-green-50 border border-green-100 px-3 py-1 rounded-full text-sm flex items-center">
+                    <TrendingUp className="h-3.5 w-3.5 mr-1.5 text-green-600" />
+                    {longestWritingStreak} day record
+                  </div>
                 )}
               </div>
               
-              <div className="space-y-1 text-sm leading-relaxed">
-                <p className="font-medium">Mood Trend Analysis</p>
-                <p>
-                  {getMoodTrend() === "improving" ? 
-                    "Your mood has been improving in recent entries. Keep up the positive momentum!" :
-                    getMoodTrend() === "declining" ?
-                    "We've noticed a slight dip in your mood recently. Consider trying a guided meditation or exercise to boost your spirits." :
-                    "Your mood has been relatively stable lately. Consistency is a good sign of emotional regulation."
-                  }
-                </p>
-                <p>
-                  {Object.entries(moodDistribution).find(([_, value]) => value === Math.max(...Object.values(moodDistribution)))?.[0] === "calm" ?
-                    "You've been experiencing more calm moments lately. Try the new guided breathing exercise to maintain this positive trend." :
-                    Object.entries(moodDistribution).find(([_, value]) => value === Math.max(...Object.values(moodDistribution)))?.[0] === "joy" ?
-                    "Joy has been your predominant mood lately. This is a great opportunity to reflect on what's working well in your life." :
-                    "Reflecting on positive moments, even small ones, can help strengthen your resilience."
-                  }
-                </p>
-              </div>
-            </div>
-          )}
-          
-          {entries.length > 0 && (
-            <div className="p-4 rounded-lg border border-secondary/20 bg-secondary/5 flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Dumbbell className="h-4 w-4 text-secondary-foreground" />
-              </div>
-              
-              <div className="space-y-1 text-sm leading-relaxed">
-                <p className="font-medium">Recommended Exercise</p>
-                <p>Based on your mood patterns, we recommend trying the <span className="font-medium text-primary">{getRecommendedExercise()}</span> exercise.</p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => navigate('/exercises')}
-                >
-                  <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
-                  Try this exercise
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {entries.length > 1 && (
-            <div className="p-4 rounded-lg border border-secondary/20 bg-secondary/5 flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <ListChecksIcon className="h-4 w-4 text-secondary-foreground" />
+              <div className={cn(
+                "p-4 rounded-lg border border-primary/20 bg-primary/5",
+                "flex items-start gap-3"
+              )}>
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  {getWritingTimePattern() === "morning" ? (
+                    <SunIcon className="h-4 w-4 text-primary" />
+                  ) : getWritingTimePattern() === "evening" ? (
+                    <MoonIcon className="h-4 w-4 text-primary" />
+                  ) : (
+                    <CalendarClockIcon className="h-4 w-4 text-primary" />
+                  )}
+                </div>
+                
+                <div className="space-y-1 text-sm leading-relaxed">
+                  <p className="font-medium">Writing Pattern Analysis</p>
+                  <p>Your journaling is most consistent in the <span className="font-medium text-primary">{getWritingTimePattern()}</span>.</p>
+                  <p>Maintaining this routine helps establish a healthy reflection habit. {
+                    getWritingTimePattern() === "evening" ? 
+                    "Evening journaling has been shown to improve sleep quality and reduce next-day anxiety." :
+                    getWritingTimePattern() === "morning" ? 
+                    "Morning journaling can set a positive tone for your day and improve focus." :
+                    "Consistent journaling at any time helps build self-awareness."
+                  }</p>
+                  
+                  {entries.length > 5 && (
+                    <div className="mt-2 pt-2 border-t border-primary/10">
+                      <p className="font-medium text-xs text-primary">ACHIEVEMENT</p>
+                      <p className="font-medium">Consistent Journaler</p>
+                      <p>You've created {entries.length} entries, placing you in the top 20% of dedicated journal users!</p>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              <div className="space-y-1 text-sm leading-relaxed">
-                <p className="font-medium">Action Recommendations</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>
-                    {getWritingTimePattern() === "evening" ? 
-                      "Continue your evening journaling habit and try adding a gratitude practice." :
-                      "Consider establishing an evening journaling routine to improve sleep quality."
-                    }
-                  </li>
-                  <li>
-                    {entries.length > 5 ? 
-                      "You're building a solid journaling habit. Try exploring different prompts to deepen your reflections." :
-                      "Aim for consistent journaling (3-5 times per week) to see the most benefits."
-                    }
-                  </li>
-                  <li>Check out the guided exercises in the Exercises section for mood enhancement techniques.</li>
-                </ul>
+              {entries.length > 1 && (
+                <div className="p-4 rounded-lg border border-accent/20 bg-accent/5 flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {getMoodTrend() === "improving" ? (
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                    ) : getMoodTrend() === "declining" ? (
+                      <LineChartIcon className="h-4 w-4 text-amber-600" />
+                    ) : (
+                      <Activity className="h-4 w-4 text-accent-foreground" />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1 text-sm leading-relaxed">
+                    <p className="font-medium">Mood Trend Analysis</p>
+                    <p>
+                      {getMoodTrend() === "improving" ? 
+                        "Your mood has been improving in recent entries. Keep up the positive momentum!" :
+                        getMoodTrend() === "declining" ?
+                        "We've noticed a slight dip in your mood recently. Consider trying a guided meditation or exercise to boost your spirits." :
+                        "Your mood has been relatively stable lately. Consistency is a good sign of emotional regulation."
+                      }
+                    </p>
+                    <p>
+                      {Object.entries(moodDistribution).find(([_, value]) => value === Math.max(...Object.values(moodDistribution)))?.[0] === "calm" ?
+                        "You've been experiencing more calm moments lately. Try the new guided breathing exercise to maintain this positive trend." :
+                        Object.entries(moodDistribution).find(([_, value]) => value === Math.max(...Object.values(moodDistribution)))?.[0] === "joy" ?
+                        "Joy has been your predominant mood lately. This is a great opportunity to reflect on what's working well in your life." :
+                        "Reflecting on positive moments, even small ones, can help strengthen your resilience."
+                      }
+                    </p>
+                    
+                    {/* Add mood pattern correlation */}
+                    {getMostCommonTriggers().length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-accent/10">
+                        <p className="font-medium">Common Themes in Your Journal</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {getMostCommonTriggers().map((trigger, index) => (
+                            <span key={index} className="px-2 py-1 bg-accent/10 rounded-full text-xs">
+                              {trigger}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {getSleepInsight() && (
+                <div className="p-4 rounded-lg border border-blue-100 bg-blue-50/30 flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <MoonIcon className="h-4 w-4 text-blue-600" />
+                  </div>
+                  
+                  <div className="space-y-1 text-sm leading-relaxed">
+                    <p className="font-medium">Sleep Pattern Insight</p>
+                    <p>{getSleepInsight()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Based on {entries.filter(e => e.content && e.content.toLowerCase().includes("sleep")).length} mentions of sleep in your journal entries
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="p-4 rounded-lg border border-secondary/20 bg-secondary/5 flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Dumbbell className="h-4 w-4 text-secondary-foreground" />
+                </div>
+                
+                <div className="space-y-1 text-sm leading-relaxed">
+                  <p className="font-medium">Recommended Exercise</p>
+                  <p>Based on your mood patterns, we recommend trying the <span className="font-medium text-primary">{getRecommendedExercise()}</span> exercise.</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => navigate('/exercises')}
+                  >
+                    <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
+                    Try this exercise
+                  </Button>
+                </div>
               </div>
-            </div>
+              
+              <div className="p-4 rounded-lg border border-secondary/20 bg-secondary/5 flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <ListChecksIcon className="h-4 w-4 text-secondary-foreground" />
+                </div>
+                
+                <div className="space-y-1 text-sm leading-relaxed">
+                  <p className="font-medium">Action Recommendations</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>
+                      {getWritingTimePattern() === "evening" ? 
+                        "Continue your evening journaling habit and try adding a gratitude practice." :
+                        "Consider establishing an evening journaling routine to improve sleep quality."
+                      }
+                    </li>
+                    <li>
+                      {entries.length > 5 ? 
+                        "You're building a solid journaling habit. Try exploring different prompts to deepen your reflections." :
+                        "Aim for consistent journaling (3-5 times per week) to see the most benefits."
+                      }
+                    </li>
+                    <li>Check out the guided exercises in the Exercises section for mood enhancement techniques.</li>
+                  </ul>
+                </div>
+              </div>
+            </>
           )}
         </motion.div>
         

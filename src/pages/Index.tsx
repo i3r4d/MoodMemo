@@ -1,8 +1,9 @@
+
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Heart, Activity, Brain, Shield, Calendar, ChevronRight, Watch } from 'lucide-react';
+import { Heart, Activity, Brain, Shield, Calendar, ChevronRight, Watch, BookOpen, BarChart3, MessageSquare } from 'lucide-react';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -75,6 +76,43 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Record your moods, thoughts, and feelings with easy-to-use tools.
               </p>
+              <div className="mb-4 bg-background/80 rounded-lg overflow-hidden shadow-sm border">
+                <div className="p-3 bg-primary/5 border-b flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Journal Entry Example</span>
+                </div>
+                <div className="p-4">
+                  <div className="mb-3">
+                    <div className="flex gap-2 mb-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-600 text-sm">😊</span>
+                      </div>
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center opacity-50">
+                        <span className="text-blue-600 text-sm">😌</span>
+                      </div>
+                      <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center opacity-50">
+                        <span className="text-slate-600 text-sm">😐</span>
+                      </div>
+                      <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center opacity-50">
+                        <span className="text-amber-600 text-sm">😢</span>
+                      </div>
+                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center opacity-50">
+                        <span className="text-red-600 text-sm">😰</span>
+                      </div>
+                    </div>
+                    <div className="h-1 w-full bg-gray-100 rounded">
+                      <div className="h-1 rounded bg-green-500 w-1/5"></div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-3">
+                    Today was really productive! I completed my project ahead of schedule and took some time for self-care. I'm feeling accomplished and relaxed.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Productive</span>
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Happy</span>
+                  </div>
+                </div>
+              </div>
               <Button
                 variant="link"
                 className="p-0 h-auto"
@@ -97,6 +135,33 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Get personalized insights and patterns based on your journal entries.
               </p>
+              <div className="mb-4 bg-background/80 rounded-lg overflow-hidden shadow-sm border">
+                <div className="p-3 bg-primary/5 border-b flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Insights Example</span>
+                </div>
+                <div className="p-4">
+                  <div className="flex gap-3 mb-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <Brain className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-medium text-foreground mb-1">Pattern Detected:</p>
+                      <p>Your mood tends to improve after morning exercise. Consider establishing a regular morning workout routine.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 mt-3">
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                      <div key={i} className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">{day}</div>
+                        <div className={`h-8 rounded-md ${
+                          ['bg-red-100', 'bg-amber-100', 'bg-green-100', 'bg-green-100', 'bg-blue-100', 'bg-green-100', 'bg-green-100'][i]
+                        }`}></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
               <Button
                 variant="link"
                 className="p-0 h-auto"
@@ -119,6 +184,29 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Access guided exercises for mindfulness, reflection, and stress reduction.
               </p>
+              <div className="mb-4 bg-background/80 rounded-lg overflow-hidden shadow-sm border">
+                <div className="p-3 bg-primary/5 border-b flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Exercise Example</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <MessageSquare className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Deep Breathing</p>
+                      <p className="text-xs text-muted-foreground">5 min • Beginner</p>
+                    </div>
+                  </div>
+                  <div className="w-full h-1 bg-gray-100 rounded-full">
+                    <div className="h-1 bg-blue-500 rounded-full w-3/4"></div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A simple exercise to reduce stress and bring your attention to the present moment through focused breathing.
+                  </p>
+                </div>
+              </div>
               <Button
                 variant="link"
                 className="p-0 h-auto"
