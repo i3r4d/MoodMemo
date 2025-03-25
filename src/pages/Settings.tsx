@@ -314,7 +314,7 @@ const Settings = () => {
     const dataStr = JSON.stringify(mockData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `moodmemo-export-${format(new Date(), 'yyyy-MM-dd')}.json';
+    const exportFileDefaultName = `moodmemo-export-${format(new Date(), 'yyyy-MM-dd')}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
