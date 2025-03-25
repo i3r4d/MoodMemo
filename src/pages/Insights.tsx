@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -89,12 +88,10 @@ const Insights = () => {
         setEntryCount(entries.length);
         console.log("Setting entry count to:", entries.length);
         
-        // Get mood distribution from the useJournalEntries hook
         const distribution = getMoodDistribution();
         console.log("Calculated mood distribution:", distribution);
         setMoodDistribution(distribution);
         
-        // Process entries to create weekly mood data
         const daysMap: Record<string, WeeklyMoodData> = {
           'Mon': { day: 'Mon', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
           'Tue': { day: 'Tue', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 },
@@ -105,18 +102,14 @@ const Insights = () => {
           'Sun': { day: 'Sun', joy: 0, calm: 0, neutral: 0, sad: 0, stress: 0 }
         };
         
-        // Calculate consecutive days and streak
         let streak = 0;
         let maxStreak = 0;
         
         if (entries.length > 0) {
-          // Sort entries by timestamp
           const sortedEntries = [...entries].sort((a, b) => 
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
           
-          // Calculate streaks
-          let currentDate = new Date();
           let streakBroken = false;
           
           for (let i = sortedEntries.length - 1; i >= 0; i--) {
@@ -130,7 +123,6 @@ const Insights = () => {
               streakBroken = true;
             }
             
-            // Calculate maximum streak
             if (i > 0) {
               const prevDate = new Date(sortedEntries[i-1].timestamp);
               const dateDiff = Math.floor((entryDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -148,7 +140,6 @@ const Insights = () => {
         setConsecutiveDays(streak);
         setLongestWritingStreak(Math.max(maxStreak, streak));
         
-        // Last 7 days only
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
         
@@ -162,7 +153,6 @@ const Insights = () => {
           }
         });
         
-        // Convert the map to an array
         const orderedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const weekData = orderedDays.map(day => daysMap[day]);
         
@@ -264,17 +254,15 @@ const Insights = () => {
     return "stable";
   };
   
-  // Function to get the most common trigger words
   const getMostCommonTriggers = () => {
     if (entries.length === 0) return [];
     
-    // Extract words from content that might be triggers
     const commonTriggerWords = ['work', 'stress', 'family', 'sleep', 'exercise', 'meditation', 'food', 'friends', 'social', 'weather'];
     const wordCounts: Record<string, number> = {};
     
     entries.forEach(entry => {
-      if (entry.content) {
-        const lowerContent = entry.content.toLowerCase();
+      if (entry.text) {
+        const lowerContent = entry.text.toLowerCase();
         commonTriggerWords.forEach(word => {
           if (lowerContent.includes(word)) {
             wordCounts[word] = (wordCounts[word] || 0) + 1;
@@ -289,12 +277,9 @@ const Insights = () => {
       .map(([word]) => word);
   };
   
-  // Function to determine the recommended exercise based on user mood patterns
   const getRecommendedExercise = () => {
-    // Default exercise
     let recommendedExercise = "Deep Breathing";
     
-    // Check dominant mood to make recommendations
     if (Object.keys(moodDistribution).length > 0) {
       const dominantMood = Object.entries(moodDistribution)
         .filter(([mood]) => mood !== 'unknown')
@@ -323,23 +308,21 @@ const Insights = () => {
     return recommendedExercise;
   };
 
-  // Calculate sleep impact if mentioned in entries
   const getSleepInsight = () => {
     const sleepMentions = entries.filter(entry => 
-      entry.content && entry.content.toLowerCase().includes("sleep")
+      entry.text && entry.text.toLowerCase().includes("sleep")
     );
     
     if (sleepMentions.length === 0) return null;
     
     const goodSleepEntries = sleepMentions.filter(entry => 
-      entry.content && 
-      (entry.content.toLowerCase().includes("good sleep") || 
-       entry.content.toLowerCase().includes("slept well"))
+      entry.text && 
+      (entry.text.toLowerCase().includes("good sleep") || 
+       entry.text.toLowerCase().includes("slept well"))
     );
     
     const goodSleepRatio = goodSleepEntries.length / sleepMentions.length;
     
-    // Check if good sleep correlates with positive moods
     const goodSleepWithPositiveMood = goodSleepEntries.filter(entry => 
       entry.mood === "joy" || entry.mood === "calm"
     ).length;
@@ -374,7 +357,6 @@ const Insights = () => {
           </div>
         </div>
         
-        {/* Enhanced AI Insights Section with more comprehensive details */}
         <motion.div 
           variants={{
             hidden: { opacity: 0, y: 20 },
@@ -451,7 +433,7 @@ const Insights = () => {
                   }</p>
                   
                   {entries.length > 5 && (
-                    <div className="mt-2 pt-2 border-t border-primary/10">
+                    <div className="mt-2 pt-2 border-t border-primary/20">
                       <p className="font-medium text-xs text-primary">ACHIEVEMENT</p>
                       <p className="font-medium">Consistent Journaler</p>
                       <p>You've created {entries.length} entries, placing you in the top 20% of dedicated journal users!</p>
@@ -491,7 +473,6 @@ const Insights = () => {
                       }
                     </p>
                     
-                    {/* Add mood pattern correlation */}
                     {getMostCommonTriggers().length > 0 && (
                       <div className="mt-2 pt-2 border-t border-accent/10">
                         <p className="font-medium">Common Themes in Your Journal</p>
@@ -518,7 +499,7 @@ const Insights = () => {
                     <p className="font-medium">Sleep Pattern Insight</p>
                     <p>{getSleepInsight()}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Based on {entries.filter(e => e.content && e.content.toLowerCase().includes("sleep")).length} mentions of sleep in your journal entries
+                      Based on {entries.filter(e => e.text && e.text.toLowerCase().includes("sleep")).length} mentions of sleep in your journal entries
                     </p>
                   </div>
                 </div>
