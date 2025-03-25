@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoodType } from '@/utils/moodAnalysis';
+import { MoodType } from '@/types/journal';
 import MoodPicker from './MoodPicker';
 
 interface TextJournalProps {
@@ -143,6 +144,10 @@ const TextJournal: React.FC<TextJournalProps> = ({
 
   const isInLoadingState = isLoading || isSubmitting;
 
+  const handleMoodSelect = (mood: MoodType | null) => {
+    setSelectedMood(mood);
+  };
+
   return (
     <Card className="shadow-md">
       <CardHeader className="pb-3">
@@ -189,7 +194,7 @@ const TextJournal: React.FC<TextJournalProps> = ({
           
           <div>
             <h3 className="text-sm font-medium mb-2">How are you feeling?</h3>
-            <MoodPicker selected={selectedMood} onSelect={setSelectedMood} />
+            <MoodPicker selected={selectedMood} onSelect={handleMoodSelect} />
           </div>
           
           <Button 

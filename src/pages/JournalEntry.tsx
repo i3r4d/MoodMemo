@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import MoodPicker from '@/components/MoodPicker';
 import useJournalEntries from '@/hooks/useJournalEntries';
+import { MoodType } from '@/types/journal';
 
 const JournalEntry = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +23,7 @@ const JournalEntry = () => {
   const isNewEntry = id === 'new' || !id;
   
   const [text, setText] = useState('');
-  const [mood, setMood] = useState<string | null>(null);
+  const [mood, setMood] = useState<MoodType | null>(null);
   const [date, setDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(false);
   
@@ -63,6 +64,7 @@ const JournalEntry = () => {
         audioUrl: null,
         mood,
         timestamp: date.toISOString(),
+        tags: [],
       };
       
       if (isNewEntry) {

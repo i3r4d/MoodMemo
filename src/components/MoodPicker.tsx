@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { MoodType } from '@/types/journal';
 
 interface MoodPickerProps {
-  selected: string | null;
-  onSelect: (mood: string | null) => void;
+  selected: MoodType | null;
+  onSelect: (mood: MoodType | null) => void;
 }
 
 const MoodPicker: React.FC<MoodPickerProps> = ({ selected, onSelect }) => {
-  // Available moods
-  const moods: string[] = ['joy', 'calm', 'neutral', 'sad', 'stress'];
+  // Available moods 
+  const moods: MoodType[] = ['joy', 'calm', 'neutral', 'sad', 'stress'];
 
   // Variants for animation
   const containerVariants = {
@@ -29,7 +29,7 @@ const MoodPicker: React.FC<MoodPickerProps> = ({ selected, onSelect }) => {
     visible: { opacity: 1, y: 0 },
   };
 
-  const getMoodColor = (mood: string) => {
+  const getMoodColor = (mood: MoodType) => {
     switch(mood) {
       case 'joy': return '#4ade80';
       case 'calm': return '#60a5fa';
@@ -40,7 +40,7 @@ const MoodPicker: React.FC<MoodPickerProps> = ({ selected, onSelect }) => {
     }
   };
 
-  const getMoodDescription = (mood: string) => {
+  const getMoodDescription = (mood: MoodType) => {
     switch(mood) {
       case 'joy': return 'Joyful';
       case 'calm': return 'Calm';
