@@ -197,11 +197,20 @@ const ExerciseDetail = () => {
   };
   
   useEffect(() => {
+    // Clean up function to clear interval when component unmounts
+    return () => {
+      if (progressInterval.current) {
+        window.clearInterval(progressInterval.current);
+      }
+    };
+  }, []);
+  
+  useEffect(() => {
     // Find the exercise by ID
     const foundExercise = exercises.find(ex => ex.id === id);
     if (foundExercise) {
       setExercise(foundExercise);
-    } else {
+    } else if (id) { // Only show error if ID is provided and not found
       toast({
         title: "Exercise Not Found",
         description: "The requested exercise could not be found.",
@@ -209,12 +218,6 @@ const ExerciseDetail = () => {
       });
       navigate('/exercises');
     }
-    
-    return () => {
-      if (progressInterval.current) {
-        window.clearInterval(progressInterval.current);
-      }
-    };
   }, [id, navigate, toast]);
   
   const handlePlay = () => {

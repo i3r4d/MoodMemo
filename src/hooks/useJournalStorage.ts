@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -66,6 +67,12 @@ const useJournalStorage = () => {
     }
   }, [user, isPremium]);
 
+  // Check if the user ID is a valid UUID
+  const isValidUuid = (id: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+  };
+
   // Load entries from localStorage or Supabase on mount
   const loadEntries = useCallback(async () => {
     try {
@@ -86,29 +93,42 @@ const useJournalStorage = () => {
       }
       
       if (user && isPremium && !localStorageOnly) {
-        // Try to load from Supabase
-        console.log('Attempting to load entries from Supabase for user:', user.id);
-        const { data, error } = await supabase
-          .from('journal_entries')
-          .select('id, text, audio_url, timestamp, mood, tags, user_id')
-          .eq('user_id', user.id)
-          .order('timestamp', { ascending: false });
-        
-        if (error) {
-          console.error('Error loading entries from Supabase:', error);
-          // Use local storage entries as fallback
+        // Check if user ID is a valid UUID before querying Supabase
+        if (!isValidUuid(user.id)) {
+          console.warn('User ID is not a valid UUID:', user.id);
           setEntries(parsedEntries);
-        } else if (data && data.length > 0) {
-          console.log('Loaded entries from Supabase:', data);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Try to load from Supabase
+        try {
+          console.log('Attempting to load entries from Supabase for user:', user.id);
+          const { data, error } = await supabase
+            .from('journal_entries')
+            .select('id, text, audio_url, timestamp, mood, tags, user_id')
+            .eq('user_id', user.id)
+            .order('timestamp', { ascending: false });
           
-          // Format the data - ensure each entry has all required properties including user_id
-          const formattedEntries = data.map(entry => mapSupabaseToJournalEntry(entry as SupabaseJournalEntry));
-          setEntries(formattedEntries);
-          
-          // Update local storage with the latest data
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formattedEntries));
-        } else {
-          console.log('No entries found in Supabase, using localStorage');
+          if (error) {
+            console.error('Error loading entries from Supabase:', error);
+            // Use local storage entries as fallback
+            setEntries(parsedEntries);
+          } else if (data && data.length > 0) {
+            console.log('Loaded entries from Supabase:', data);
+            
+            // Format the data - ensure each entry has all required properties including user_id
+            const formattedEntries = data.map(entry => mapSupabaseToJournalEntry(entry as SupabaseJournalEntry));
+            setEntries(formattedEntries);
+            
+            // Update local storage with the latest data
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formattedEntries));
+          } else {
+            console.log('No entries found in Supabase, using localStorage');
+            setEntries(parsedEntries);
+          }
+        } catch (err) {
+          console.error('Exception in loading from Supabase:', err);
           setEntries(parsedEntries);
         }
       } else {
@@ -162,6 +182,17 @@ const useJournalStorage = () => {
 
       // If user is authenticated and premium, also save to Supabase
       if (user && isPremium && !localStorageOnly) {
+        // Check if user ID is a valid UUID before saving to Supabase
+        if (!isValidUuid(user.id)) {
+          console.warn('Skipping Supabase sync - User ID is not a valid UUID:', user.id);
+          toast({
+            title: "Entry Saved",
+            description: "Your journal entry has been saved locally.",
+            variant: "default",
+          });
+          return newId;
+        }
+        
         try {
           console.log('Saving entry to Supabase for user:', user.id);
           const { error } = await supabase
@@ -179,9 +210,9 @@ const useJournalStorage = () => {
           if (error) {
             console.error('Error saving journal entry to Supabase:', error);
             toast({
-              title: "Sync Error",
-              description: "Your entry was saved locally but failed to sync to the cloud. We'll try again later.",
-              variant: "destructive",
+              title: "Local Save Only",
+              description: "Your entry was saved locally. We'll sync to the cloud when possible.",
+              variant: "default",
             });
             
             // Store failed sync entries for later retry
@@ -198,9 +229,9 @@ const useJournalStorage = () => {
         } catch (error) {
           console.error('Exception in saving to Supabase:', error);
           toast({
-            title: "Error",
-            description: "Failed to sync your entry. It's saved locally and we'll try again later.",
-            variant: "destructive",
+            title: "Local Save Only",
+            description: "Your entry was saved locally. We'll try to sync later.",
+            variant: "default",
           });
         }
       } else {
@@ -236,6 +267,17 @@ const useJournalStorage = () => {
 
     // If user is authenticated, also delete from Supabase
     if (user && isPremium && !localStorageOnly) {
+      // Check if user ID is a valid UUID before deleting from Supabase
+      if (!isValidUuid(user.id)) {
+        console.warn('Skipping Supabase delete - User ID is not a valid UUID:', user.id);
+        toast({
+          title: "Entry Deleted",
+          description: "Your journal entry has been deleted locally.",
+          variant: "default",
+        });
+        return;
+      }
+      
       try {
         const { error } = await supabase
           .from('journal_entries')
@@ -266,7 +308,7 @@ const useJournalStorage = () => {
   // Add a function to retry failed syncs
   useEffect(() => {
     const retrySyncs = async () => {
-      if (user && isPremium && !localStorageOnly) {
+      if (user && isPremium && !localStorageOnly && isValidUuid(user.id)) {
         const failedSyncs = JSON.parse(localStorage.getItem('failed_syncs') || '[]');
         if (failedSyncs.length === 0) return;
 

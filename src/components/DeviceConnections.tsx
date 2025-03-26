@@ -13,38 +13,11 @@ interface DeviceConnection {
   token_expires_at: string;
 }
 
-// Mock device connections for demo purposes
-const mockConnections: DeviceConnection[] = [
-  {
-    id: '1',
-    device_type: 'apple_watch',
-    last_sync_at: new Date().toISOString(),
-    token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  }
-];
-
 const DeviceConnections: React.FC = () => {
   const [connections, setConnections] = useState<DeviceConnection[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { isPremium } = useAuth();
-  
-  const [mockLoaded, setMockLoaded] = useState(false);
-
-  React.useEffect(() => {
-    // Simulate loading delay
-    const timer = setTimeout(() => {
-      if (isPremium) {
-        setConnections(mockConnections);
-      } else {
-        setConnections([]);
-      }
-      setIsLoading(false);
-      setMockLoaded(true);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [isPremium]);
 
   const handleConnect = async (deviceType: string) => {
     setIsLoading(true);
@@ -201,7 +174,7 @@ const DeviceConnections: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading && !mockLoaded ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
